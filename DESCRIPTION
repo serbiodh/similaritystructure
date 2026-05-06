@@ -1,0 +1,26 @@
+Package: similaritystructure
+Title: Similarity Structure Estimation from Subsampling Tests
+Version: 0.1.0
+Authors@R: 
+    person("Sergio", "Diez-Hermano", email = "sergio.diez.hermano@uva.es", role = c("aut", "cre"))
+Description: Estimates similarity structure between samples using repeated subsampling,
+    statistical testing, smoothing and parametric fitting.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
+Imports:
+    data.table,
+    future,
+    future.apply,
+    progressr,
+    mgcv,
+    minpack.lm,
+    stats,
+    utils,
+    graphics
+Suggests:
+    vegan,
+    sn,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
