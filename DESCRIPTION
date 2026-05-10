@@ -1,8 +1,7 @@
 Package: similaritystructure
 Title: Similarity Structure Estimation from Subsampling Tests
 Version: 0.1.0
-Authors@R: 
-    c(
+Authors@R: c(
     person("Sergio", "Diez-Hermano",
            email = "sergio.diez.hermano@uva.es",
            role = c("aut", "cre")),
@@ -17,7 +16,7 @@ Authors@R:
     person("José Antonio", "Villacorta-Atienza",
            email = "josea@ucm.es",
            role = "aut")
-)
+		   )
 Description: Estimates similarity structure between samples using repeated subsampling,
     statistical testing, smoothing and parametric fitting.
 License: MIT + file LICENSE
