@@ -21,6 +21,6 @@ A list with one component:
 }
 \description{
 Computes the expected similarity size from the normalized parameters of the
-fitted P(N|>alpha) distribution.
+fitted p(n) distribution.
 }
 \keyword{internal}

@@ -14,7 +14,7 @@ similarity_structure(
   replace = TRUE,
   test,
   test_args = NULL,
-  alpha,
+  alpha = 0.05,
   seed = TRUE,
   sav = FALSE,
   sav_file = NULL,
@@ -45,7 +45,7 @@ similarity_structure(
 
 \item{seed}{Seed used by the parallel backend.}
 
-\item{sav}{Logical. Should the empirical PN-alpha object be saved?}
+\item{sav}{Logical. Should the scaled g(n) object be saved?}
 
 \item{sav_file}{Optional file path for saving the empirical PN-alpha object.}
 
@@ -56,7 +56,7 @@ similarity_structure(
 \value{
 A list with two components:
 \describe{
-\item{empiric_PNalpha}{Empirical P(N | >alpha) curve.}
+\item{scaled_gn}{Scaled g(n) curve.}
 \item{simil_struct_Ns}{Estimated similarity structure.}
 }
 }

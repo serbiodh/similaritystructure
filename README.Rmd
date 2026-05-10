@@ -25,7 +25,7 @@ knitr::opts_chunk$set(
 
 You can install the development version of similaritystructure like so:
 
-``` r
+```r
 devtools::install_github("usuario/similaritystructure")
 ```
 
@@ -54,5 +54,26 @@ res <- similarity_structure(
   plotting = TRUE
 )
 
+```
+
+## Example files
+
+The package includes example data and reproducible R Markdown scripts.
+
+```r
+system.file("extdata", package = "similaritystructure")
+system.file("examples", package = "similaritystructure")
+```
+
+For example, to open the t-test example:
+
+```r
+file <- system.file(
+  "examples",
+  "example_01_ttest.Rmd",
+  package = "similaritystructure"
+)
+
+file.edit(file)
 ```
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/fitting_pnalpha.R
 \name{fitting_pnalpha}
 \alias{fitting_pnalpha}
-\title{Select a valid parametric P(N|>alpha) fit}
+\title{Select a valid parametric fit for g(n)}
 \usage{
 fitting_pnalpha(vector_N, PROB_N, Scale)
 }
@@ -10,7 +10,7 @@ fitting_pnalpha(vector_N, PROB_N, Scale)
 \item{vector_N}{Numeric vector. Subsample sizes used to estimate the empirical
 P(N|>alpha) curve.}
 
-\item{PROB_N}{Numeric vector. Empirical scaled P(N|>alpha) values corresponding
+\item{PROB_N}{Numeric vector. Empirical scaled g(n) values corresponding
 to \code{vector_N}.}
 
 \item{Scale}{Numeric. Scaling factor passed to \code{fitting_basic()}.}
@@ -23,11 +23,11 @@ A list with the following components:
 \item{Gof}{Goodness-of-fit value for the selected model.}
 \item{vect_N_fit}{Sequence of subsample sizes used to evaluate the fitted
 curve.}
-\item{func_fit}{Values of the fitted PN-alpha curve over \code{vect_N_fit}.}
+\item{func_fit}{Values of the fitted g(n) curve over \code{vect_N_fit}.}
 }
 }
 \description{
-Fits and filters candidate parametric P(N|>alpha) models. The function calls
+Fits and filters candidate parametric g(n) models. The function calls
 \code{fitting_basic()} and then evaluates the fitted parameters to discard
 unsuitable fits, such as fits with invalid decay parameters or problematic
 curve shapes.

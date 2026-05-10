@@ -1,8 +1,8 @@
-#' Normalize a fitted P(N|>alpha) curve
+#' Normalize a fitted g(n) curve
 #'
-#' Converts fitted P(N|>alpha) parameters into normalized parameters so that the
+#' Converts fitted g(n) parameters into normalized parameters so that the
 #' fitted curve can be interpreted as a probability distribution over subsample
-#' sizes.
+#' sizes, p(n)
 #'
 #' @param Param_0 Numeric vector. Raw fitted parameters, usually obtained from
 #'   `fitting_pnalpha()`.
@@ -20,9 +20,9 @@
 
 fitting_pnalpha_norm = function(Param_0, vect_N){
 
-  # This script normalizes the experimental p(N | >alpha) to get the final p(N | >alpha).
+  # This script normalizes the experimental g(n) to get the final p(n)
   # The sum_N( p(>alpha | N) ) goes from m to inf.
-  # WARNING! This is done because this final p(N | >alpha) is the probability distribution,
+  # WARNING! This is done because this final p(n) is the probability distribution,
   # i.e., the theoretical law of the distribution of the probability
 
   # Bayes theorem

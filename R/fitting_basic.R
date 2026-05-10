@@ -1,6 +1,6 @@
-#' Fit basic parametric P(N|>alpha) candidate models
+#' Fit basic parametric g(n) candidate models
 #'
-#' Fits several polynomial-exponential candidate models to an empirical P(N|>alpha)
+#' Fits several polynomial-exponential candidate models to an empirical g(n)
 #' curve using non-linear least squares. The candidate models have the general
 #' form of a polynomial in `N` multiplied by an exponential decay term.
 #'
@@ -8,7 +8,7 @@
 #' then returns the best valid approximation found among the candidate fits.
 #'
 #' @param n0 Numeric vector. Subsample sizes.
-#' @param Prob Numeric vector. Empirical probabilities or scaled P(N|>alpha) values
+#' @param Prob Numeric vector. Empirical probabilities or scaled g(n) values
 #'   associated with `n0`.
 #' @param Scale Numeric. Scaling factor used to build initial parameter values
 #'   for the non-linear fits.

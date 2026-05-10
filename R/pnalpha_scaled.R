@@ -1,4 +1,4 @@
-#' Empirical scaled P(N|>alpha) curve
+#' Scaled g(n)/K curve
 #'
 #' Computes the empirical proportion of non-significant tests across a sequence
 #' of subsample sizes. For each subsample size, the function repeatedly samples
@@ -58,7 +58,7 @@ pnalpha_scaled <- function(vector_Nsub, n1, n2, num_repet = 60, test = "t-test",
     pnalpha <- future.apply::future_lapply(vector_Nsub,
                                            function(x) {
                                              p(sprintf("nsub = %d", x)) # text of progress bar
-                                             print(x)
+                                             # print(x)
                                              pvals <- replicate(
                                                num_repet,
                                                subsampling_testing(n1, n2, nsub = x, test = test, test_args = test_args, replace = replace),

@@ -2,7 +2,7 @@
 % Please edit documentation in R/fitting_pnalpha_norm.R
 \name{fitting_pnalpha_norm}
 \alias{fitting_pnalpha_norm}
-\title{Normalize a fitted P(N|>alpha) curve}
+\title{Normalize a fitted g(n) curve}
 \usage{
 fitting_pnalpha_norm(Param_0, vect_N)
 }
@@ -21,8 +21,8 @@ A list with two components:
 }
 }
 \description{
-Converts fitted P(N|>alpha) parameters into normalized parameters so that the
+Converts fitted g(n) parameters into normalized parameters so that the
 fitted curve can be interpreted as a probability distribution over subsample
-sizes.
+sizes, p(n)
 }
 \keyword{internal}

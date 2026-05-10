@@ -2,7 +2,7 @@
 % Please edit documentation in R/ps_fitting.R
 \name{ps_fitting}
 \alias{ps_fitting}
-\title{Tail probability from fitted P(N|>alpha) distribution}
+\title{Tail probability from p(n) distribution}
 \usage{
 ps_fitting(Param_Final, M)
 }
@@ -19,6 +19,6 @@ A list with one component:
 }
 \description{
 Computes the probability that the similarity size is greater than or equal to
-a given threshold \code{M}, using the normalized fitted P(N|>alpha) distribution.
+a given threshold \code{M}, using the normalized p(n) distribution.
 }
 \keyword{internal}

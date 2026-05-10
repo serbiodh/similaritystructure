@@ -20,7 +20,7 @@ test_that("similarity_structure returns expected structure", {
   )
 
   expect_type(res, "list")
-  expect_named(res, c("empiric_PNalpha", "simil_struct_Ns"))
-  expect_true("N" %in% names(res$empiric_PNalpha))
-  expect_true("scaled" %in% names(res$empiric_PNalpha))
+  expect_named(res, c("scaled_gn", "simil_struct_Ns"))
+  expect_true("N" %in% names(res$scaled_gn))
+  expect_true("scaled" %in% names(res$scaled_gn))
 })

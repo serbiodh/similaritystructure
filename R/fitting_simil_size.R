@@ -1,7 +1,7 @@
 #' Estimate similarity size from fitted parameters
 #'
 #' Computes the expected similarity size from the normalized parameters of the
-#' fitted P(N|>alpha) distribution.
+#' fitted p(n) distribution.
 #'
 #' @param Param_Final Numeric vector. Normalized fitted parameters, usually
 #'   returned by `fitting_pnalpha_norm()`.

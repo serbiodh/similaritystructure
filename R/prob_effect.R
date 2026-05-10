@@ -19,12 +19,12 @@ prob_effect <- function(fitting_A = NULL, fitting_B = NULL, smooth_A = NULL, smo
     Ns_A <- fitting_A$Ns_fitting
     Ns_B <- fitting_B$Ns_fitting
 
-    if (Ns_B > Ns_A) {  # The effect A is greater than the effect B, so we obtain the prob of Expect_N_B in the p_alpha(N) for Param_A
+    if (Ns_B > Ns_A) {  # The effect A is greater than the effect B, so we obtain the prob of Expect_N_B in the p(n) for Param_A
 
       Out <- ps_fitting(Param_A, Ns_B)
       Prob_Effect_fit <- Out$prob
 
-    } else {  # The effect B is greater than the effect A, so we obtain the prob of Expect_N_A in the p_alpha(N) for Param_B
+    } else {  # The effect B is greater than the effect A, so we obtain the prob of Expect_N_A in the p(n) for Param_B
 
       Out <- ps_fitting(Param_B, Ns_A)
       Prob_Effect_fit <- Out$prob
@@ -44,7 +44,7 @@ prob_effect <- function(fitting_A = NULL, fitting_B = NULL, smooth_A = NULL, smo
     Nfin_A <- utils::tail(smooth_A$vect_N_smooth, 1)
     Nfin_B <- utils::tail(smooth_B$vect_N_smooth, 1)
 
-    if (Nss_B > Nss_A) {  # The effect A is greater than the effect B, so we obtain the prob of Expect_N_B in the p_alpha(N) for smooth_A
+    if (Nss_B > Nss_A) {  # The effect A is greater than the effect B, so we obtain the prob of Expect_N_B in the p(n) for smooth_A
 
       if (Nss_B >= Nfin_A) {
 
@@ -55,7 +55,7 @@ prob_effect <- function(fitting_A = NULL, fitting_B = NULL, smooth_A = NULL, smo
         Prob_Effect_smooth <- sum(fun_A[Nss_B:length(fun_A)])
       }
 
-    } else {  # The effect B is greater than the effect A, so we obtain the prob of Expect_N_A in the p_alpha(N) for smooth_B
+    } else {  # The effect B is greater than the effect A, so we obtain the prob of Expect_N_A in the p(n) for smooth_B
 
       if (Nss_A >= Nfin_B) {
 

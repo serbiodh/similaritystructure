@@ -1,13 +1,13 @@
-#' Select a valid parametric P(N|>alpha) fit
+#' Select a valid parametric fit for g(n)
 #'
-#' Fits and filters candidate parametric P(N|>alpha) models. The function calls
+#' Fits and filters candidate parametric g(n) models. The function calls
 #' `fitting_basic()` and then evaluates the fitted parameters to discard
 #' unsuitable fits, such as fits with invalid decay parameters or problematic
 #' curve shapes.
 #'
 #' @param vector_N Numeric vector. Subsample sizes used to estimate the empirical
 #'   P(N|>alpha) curve.
-#' @param PROB_N Numeric vector. Empirical scaled P(N|>alpha) values corresponding
+#' @param PROB_N Numeric vector. Empirical scaled g(n) values corresponding
 #'   to `vector_N`.
 #' @param Scale Numeric. Scaling factor passed to `fitting_basic()`.
 #'
@@ -18,19 +18,19 @@
 #'   \item{Gof}{Goodness-of-fit value for the selected model.}
 #'   \item{vect_N_fit}{Sequence of subsample sizes used to evaluate the fitted
 #'   curve.}
-#'   \item{func_fit}{Values of the fitted PN-alpha curve over `vect_N_fit`.}
+#'   \item{func_fit}{Values of the fitted g(n) curve over `vect_N_fit`.}
 #' }
 #'
 #' @keywords internal
 
 fitting_pnalpha = function(vector_N, PROB_N, Scale){
 
-  # This script provides the fitting of a polynomial multiplied by exp(-d*N) to the probabilites p_N(>alpha ) vs. N's in 'vector_N'
+  # This script provides the fitting of a polynomial multiplied by exp(-d*N) to the probabilites g(n) vs. N's in 'vector_N'
 
   # To substitute in the fitted function
   vect_N = seq(vector_N[1], 4*vector_N[length(vector_N)], by=1)  # For the fitting the final x-value is the double of the sample size to ensure that the fitted function approaches to zero properly
 
-  # Obtaining p_N(>alpha | n1* ^ n2) from the fitting (n1* is a fixed value for n1; n2 remains variable)
+  # Obtaining p(>alpha | n1* ^ n2) from the fitting (n1* is a fixed value for n1; n2 remains variable)
   # Output_N = Fitting_Prob_Cond_Basic(vector_N, PROB_N)
   Output_N = fitting_basic(vector_N, PROB_N, Scale)
 
@@ -77,7 +77,7 @@ fitting_pnalpha = function(vector_N, PROB_N, Scale){
   Param = Param_0[ind_pos, ]
   GOF = GOF_0[ind_pos]
 
-  if (!is.null(Aprox)){   # Some fitting(s) was(were) successful; we calculate p_N(>alpha | n1*) for n1*
+  if (!is.null(Aprox)){   # Some fitting(s) was(were) successful; we calculate p(>alpha | n1*) for n1*
 
     # # Take the prob with the minimum GOF
     ind_min = which.min(GOF)

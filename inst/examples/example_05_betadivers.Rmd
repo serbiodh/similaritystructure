@@ -1,0 +1,382 @@
+---
+title: "Example 05 Beta diversity"
+author: "Sergio Diez-Hermano"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+      highlight: tango
+      toc: yes
+      toc_depth: 4
+      toc_float:
+        collapsed: no
+---
+
+```{r setup, include=FALSE}
+require(knitr)
+# include this code chunk as-is to set options
+opts_chunk$set(comment = NA, prompt = FALSE, fig.height=5, fig.width=5, dpi=300, fig.align = "center", echo = TRUE, message = FALSE, warning = FALSE, cache=FALSE)
+Sys.setlocale("LC_TIME", "C")
+```
+
+# Libraries and functions
+
+```{r}
+library(tictoc)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(R.matlab)
+library(pbapply)
+library(ggplot2)
+library(stringr)
+library(patchwork)
+library(viridis)
+
+# Similarity structure
+library(similaritystructure)
+
+```
+
+# Similarity structure
+
+```{r}
+# Read the data
+distfile <- system.file("extdata", "distances_full.csv", package = "similaritystructure")
+metafile <- system.file("extdata", "meta_full.csv", package = "similaritystructure")
+betadist <- read.csv(distfile)
+betameta <- read.csv(metafile)
+
+# ---- distance matrix and metadata ----
+rownames(betadist) <- colnames(betadist)
+rownames(betameta) <- betameta$sample_id
+
+common_ids <- intersect(rownames(betadist), rownames(betameta))
+betadist <- betadist[common_ids, common_ids, drop = FALSE]
+betameta  <- betameta[common_ids, , drop = FALSE]
+
+betameta <- mutate(betameta,
+                   gender = factor(as.character(gender), levels = c("Male","Female")),
+                   smoker = factor(as.character(smoker), levels = c("no","yes")))
+
+# men         (73s - 269ns): 0.007
+# smoker      (73m - 77w):   0.001499
+# non-smoker  (269m - 489w): 0.0002
+# women       (77s - 489ns): 0.0002
+
+# Parameters
+alpha <- 0.05
+N_init <- 2
+comparisons <- c("Female", "Male", "yes", "no")
+N_fin <- c(77, 73, 73, 100)
+num_N <- 60       # Number of equidistant subsample sizes
+num_repet <- 300  # Number of tests per subsample size
+
+# Ensure reproducibility
+seed <- 123456
+set.seed(seed)
+
+# Similarity structure and size
+# Obtain random row indices
+for (i in 1:4) {
+  
+  if (comparisons[i] == "Female" | comparisons[i] == "Male") {
+    
+    ind1 <- which(betameta$gender == comparisons[i] & betameta$smoker == "yes")
+    ind2 <- which(betameta$gender == comparisons[i] & betameta$smoker == "no") 
+    D1sub <- betadist[ind1, ]  %>% as.matrix()
+    D2sub <- betadist[ind2, ] %>% as.matrix()
+    
+  } else {
+    
+    ind1 <- which(betameta$gender == "Female" & betameta$smoker == comparisons[i])
+    ind2 <- which(betameta$gender == "Male" & betameta$smoker == comparisons[i])
+    D1sub <- betadist[ind1, ]  %>% as.matrix()
+    D2sub <- betadist[ind2, ] %>% as.matrix()
+    
+  }
+  
+  ss <- similarity_structure(D1sub,
+                             D2sub, 
+                             N_init, 
+                             N_fin[i], 
+                             num_N, 
+                             num_repet,
+                             replace = FALSE,
+                             test = adonis_ss,
+                             test_args = list(subset_choice = comparisons[i]),
+                             alpha = alpha,
+                             seed = seed,
+                             sav = FALSE, 
+                             # sav_file = paste0("betadivers_", comparisons[i], ".RData"),
+                             plotting = T,
+                             title_plot = comparisons[i])
+  
+  # saveRDS(ss, paste0("betadivers_", comparisons[i], ".RData"))
+
+}
+
+
+```
+
+## Plot fitting and smoothing
+
+```{r, fig.height=5, fig.width=20}
+# Load similarity structures
+datadir <- system.file("extdata", package = "similaritystructure")
+datalist <- list.files(datadir, pattern = "example_05", full.names = T)
+ssfiles <- lapply(datalist, function(x) readRDS(x))
+names(ssfiles) <- c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")
+
+# Plot
+par(mfrow = c(1,4), mar = c(4, 4, 2, 0.3), bg = "gray", cex = 1.2)
+
+for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
+  
+  plotdata <- ssfiles[[as.character(i)]]
+  propsig <- plotdata$empiric_PNalpha
+  smoothdata <- plotdata$simil_struct_Ns$smooth
+  fitdata <- plotdata$simil_struct_Ns$fitting
+  
+  plot(propsig$N, propsig$scaled, type = 'l', col = "black",lwd=1.5, 
+       ylab = "Scaled g(n)", xlab = "Subsample size",
+       main = i)
+  lines(fitdata$vect_N_fit, fitdata$Scale*fitdata$fun_fit, type = 'l', col = "darkred",lwd=1.5)
+  lines(smoothdata$vect_N_smooth, smoothdata$fun_smooth, col = "darkgreen")
+  abline(v = 0, lty = "dashed")
+  abline(v = fitdata$Ns_fitting, col = "darkred")
+  abline(v = smoothdata$Ns_smooth, col = "darkgreen")
+  legend("topright", c("Fitting", "Smooth"), col = c("darkred", "darkgreen"), lty = "solid")
+  
+}
+
+```
+
+# Plot all p(n)
+
+```{r, fig.width=10, fig.height=5}
+# Load similarity structures
+datadir <- system.file("extdata", package = "similaritystructure")
+datalist <- list.files(datadir, pattern = "example_05", full.names = T)
+ssfiles <- lapply(datalist, function(x) readRDS(x))
+names(ssfiles) <- c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")
+
+jet <- function(n) {
+  colorRampPalette(c(
+    "#00007F", "blue", "#007FFF", "cyan",
+    "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"
+  ))(n)
+}
+
+cols <- jet(length(ssfiles))
+names(cols) <- c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")
+
+# Plot
+par(mfrow = c(1,2), mar = c(4, 4, 2, 0.3), bg = "gray", cex = 1.2)
+
+# Fitting
+plot(0, 0, xlim = c(2,100), ylim = c(0, 0.065), type = "n",
+     ylab = "Palfa(N)", xlab = "Subsample size", 
+     main = "Fitting")
+
+for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
+  
+  plotdata <- ssfiles[[as.character(i)]]
+  logN <- plotdata$simil_struct_Ns$fitting$vect_N_fit
+  fitdata <- plotdata$simil_struct_Ns$fitting$P_N_alpha
+  
+  lines(logN, fitdata, type = 'l', col = cols[as.character(i)], lwd=1.5)
+
+}
+
+legend("topright", c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms"), col = cols, lty = "solid")
+
+# Smoothing
+plot(0, 0, xlim = c(2, 100), ylim = c(0, 0.065), type = "n",
+     ylab = "Palfa(N)", xlab = "Subsample size", 
+     main = "Smooth")
+
+for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
+  
+  plotdata <- ssfiles[[as.character(i)]]
+  logN <- plotdata$simil_struct_Ns$smooth$vect_N_smooth
+  fitdata <- plotdata$simil_struct_Ns$smooth$fun_smooth_norm
+  
+  lines(logN, fitdata, type = 'l', col = cols[as.character(i)], lwd=1.5)
+
+}
+
+legend("topright", c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms"), col = cols, lty = "solid")
+
+
+```
+
+# Probability of effect
+
+```{r}
+# Load similarity structures
+datadir <- system.file("extdata", package = "similaritystructure")
+datalist <- list.files(datadir, pattern = "example_05", full.names = T)
+ssfiles <- lapply(datalist, function(x) readRDS(x))
+names(ssfiles) <- c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")
+
+pares <- combn(seq_along(ssfiles), 2)
+
+ps_list <- apply(pares, 2, 
+                 function(i) {prob_effect(ssfiles[[i[1]]]$simil_struct_Ns$fitting, 
+                                          ssfiles[[i[2]]]$simil_struct_Ns$fitting,
+                                          ssfiles[[i[1]]]$simil_struct_Ns$smooth,
+                                          ssfiles[[i[2]]]$simil_struct_Ns$smooth)})
+
+names(ps_list) <- apply(pares, 2, 
+                        function(i) {paste(names(ssfiles)[i[1]], names(ssfiles)[i[2]], sep = "_vs_")})
+
+```
+
+## Plot
+
+```{r, fig.height=5, fig.width=10}
+# ------------------------------------------------------------
+# List to data.frame
+# ------------------------------------------------------------
+
+ps_df <- tibble(
+  comparacion = names(ps_list),
+  ps_fit = sapply(ps_list, \(x) x$ps_fit),
+  ps_smooth = sapply(ps_list, \(x) x$ps_smooth)
+) %>%
+  separate(comparacion, into = c("m1", "m2"), sep = "_vs_")
+
+# ------------------------------------------------------------
+# 1. Define the desired category order
+# ------------------------------------------------------------
+
+# Option A: use the order in which categories appear in ps_df
+# category_order <- unique(c(ps_df$m1, ps_df$m2))
+
+# Option B: define the order manually
+category_order <- c("Wns_Mns", "Ws_Ms", "Ms_Mns", "Ws_Wns") %>% rev()
+
+# ------------------------------------------------------------
+# 2. Create symmetric data
+# ------------------------------------------------------------
+
+ps_df_sym <- bind_rows(
+  ps_df,
+  ps_df %>%
+    rename(m1 = m2, m2 = m1)
+)
+
+# ------------------------------------------------------------
+# 3. Add diagonal values
+# ------------------------------------------------------------
+
+# Use NA if you want the diagonal to be empty
+diag_df <- tibble(
+  m1 = category_order,
+  m2 = category_order,
+  ps_fit = NA_real_,
+  ps_smooth = NA_real_
+)
+
+# If you prefer the diagonal to be 1, use this instead:
+# diag_df <- tibble(
+#   m1 = category_order,
+#   m2 = category_order,
+#   ps_fit = 1,
+#   ps_smooth = 1
+# )
+
+ps_df_sym <- bind_rows(ps_df_sym, diag_df)
+
+# ------------------------------------------------------------
+# 4. Function to create ordered symmetric matrices
+# ------------------------------------------------------------
+
+create_matrix <- function(data, variable, category_order) {
+  
+  mat <- data %>%
+    select(m1, m2, all_of(variable)) %>%
+    mutate(
+      m1 = factor(m1, levels = category_order),
+      m2 = factor(m2, levels = category_order)
+    ) %>%
+    arrange(m1, m2) %>%
+    pivot_wider(
+      names_from = m2,
+      values_from = all_of(variable),
+      names_sort = FALSE
+    )
+  
+  mat <- as.data.frame(mat)
+  rownames(mat) <- as.character(mat$m1)
+  mat$m1 <- NULL
+  
+  # Reorder rows and columns according to the chosen category order
+  mat <- mat[category_order, category_order]
+  
+  as.matrix(mat)
+}
+
+mat_ps_fit <- create_matrix(ps_df_sym, "ps_fit", category_order)
+mat_ps_smooth <- create_matrix(ps_df_sym, "ps_smooth", category_order)
+
+# Check matrices
+# mat_ps_fit
+# mat_ps_smooth
+
+# ------------------------------------------------------------
+# 5. Prepare data for plotting
+# ------------------------------------------------------------
+
+ps_plot <- ps_df_sym %>%
+  mutate(
+    m1 = factor(m1, levels = category_order),
+    m2 = factor(m2, levels = category_order)
+  )
+
+# Use the same color range for ps_fit and ps_smooth
+range_values <- range(c(ps_plot$ps_fit, ps_plot$ps_smooth), na.rm = TRUE)
+
+# Optional: set a fixed range manually
+# range_values <- c(0, 0.5)
+
+# ------------------------------------------------------------
+# 6. Function to plot heatmaps
+# ------------------------------------------------------------
+
+plot_heatmap <- function(data, variable, title = NULL) {
+  
+  ggplot(data, aes(x = m1, y = m2, fill = .data[[variable]])) +
+    geom_tile(color = "white") +
+    coord_equal() +
+    scale_fill_viridis_c(
+      name = variable,
+      limits = range_values,
+      na.value = "yellow"
+    ) +
+    labs(
+      x = NULL,
+      y = NULL,
+      title = title
+    ) +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text.y = element_text(),
+      axis.ticks = element_blank()
+    )
+}
+
+# ------------------------------------------------------------
+# 7. Plot both matrices
+# ------------------------------------------------------------
+
+p_fit <- plot_heatmap(ps_plot, "ps_fit", "ps_fit")
+p_smooth <- plot_heatmap(ps_plot, "ps_smooth", "ps_smooth")
+
+p_fit + p_smooth
+
+```
+
+

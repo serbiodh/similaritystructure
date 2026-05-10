@@ -2,7 +2,7 @@
 % Please edit documentation in R/pnalpha_scaled.R
 \name{pnalpha_scaled}
 \alias{pnalpha_scaled}
-\title{Empirical scaled P(N|>alpha) curve}
+\title{Scaled g(n)/K curve}
 \usage{
 pnalpha_scaled(
   vector_Nsub,

@@ -1,7 +1,7 @@
-#' Tail probability from fitted P(N|>alpha) distribution
+#' Tail probability from p(n) distribution
 #'
 #' Computes the probability that the similarity size is greater than or equal to
-#' a given threshold `M`, using the normalized fitted P(N|>alpha) distribution.
+#' a given threshold `M`, using the normalized p(n) distribution.
 #'
 #' @param Param_Final Numeric vector. Normalized fitted parameters.
 #' @param M Numeric. Lower threshold for the tail probability.
@@ -16,7 +16,7 @@
 
 ps_fitting <- function(Param_Final, M){
 
-  # This script calculates the prob of N >= M given by p(N | >alpha)
+  # This script calculates the prob of N >= M given by p(n)
 
   # This script applies Bayes's theorem numercally, i.e., as
   # p(N | >alpha) = p(>alpha | N)/sum_N( p(>alpha | N) ), the sum of
