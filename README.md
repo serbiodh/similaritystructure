@@ -16,7 +16,7 @@ parametric fitting.
 You can install the development version of similaritystructure like so:
 
 ``` r
-devtools::install_github("usuario/similaritystructure")
+devtools::install_github("serbiodh/similaritystructure")
 ```
 
 ## Example
