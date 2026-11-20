@@ -15,3 +15,5 @@ This version changes numerical results for pS, smoothing and the subsampling gri
 
 Historical cached analyses should be preserved and new article results
 recomputed and checked before publication.
+
+* Remove unused Imports and the vignette builder declaration (example Rmd files are not package vignettes); allow roxygen2 to regenerate prob_effect help.
