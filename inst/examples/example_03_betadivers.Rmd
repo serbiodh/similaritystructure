@@ -160,7 +160,7 @@ for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
 
 # Plot all S(n)
 
-The Male smoking contrast has limited empirical support; the manuscript reports its parametric estimate only. The finite-interval GAM is displayed here as a diagnostic and should not be used to replace that extrapolated estimate without checking the support.
+The Male smoking contrast has limited empirical support; the manuscript reports its parametric estimate only. The finite-interval GAM is displayed here as a diagnostic and should not be used to replace that extrapolated estimate without checking the support. The smoothing-based pS is not reported for pairs involving this contrast.
 
 ```{r, fig.width=10, fig.height=5}
 # Load similarity structures
@@ -228,11 +228,17 @@ datalist <- list.files(datadir, pattern = "example_05", full.names = T)
 
 pares <- combn(seq_along(ssfiles), 2)
 
-ps_list <- apply(pares, 2, 
-                 function(i) {prob_effect(ssfiles[[i[1]]]$simil_struct_Ns$fitting, 
-                                          ssfiles[[i[2]]]$simil_struct_Ns$fitting,
-                                          ssfiles[[i[1]]]$simil_struct_Ns$smooth,
-                                          ssfiles[[i[2]]]$simil_struct_Ns$smooth)})
+# The male smoking comparison has insufficient finite support according
+# to the manuscript; report its fitted pS only.
+ps_list <- apply(pares, 2, function(i) {
+  a <- ssfiles[[i[1]]]$simil_struct_Ns
+  b <- ssfiles[[i[2]]]$simil_struct_Ns
+  fit <- if (is.null(a$fitting) || is.null(b$fitting)) NA_real_ else
+    prob_effect(fitting_A = a$fitting, fitting_B = b$fitting)
+  sm <- if ("Ms_Mns" %in% names(ssfiles)[i]) NA_real_ else
+    prob_effect(smooth_A = a$smooth, smooth_B = b$smooth)
+  list(ps_fit = fit, ps_smooth = sm)
+})
 
 names(ps_list) <- apply(pares, 2, 
                         function(i) {paste(names(ssfiles)[i[1]], names(ssfiles)[i[2]], sep = "_vs_")})
