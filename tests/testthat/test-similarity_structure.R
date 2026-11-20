@@ -8,6 +8,7 @@ test_that("similarity_structure returns expected structure", {
                               plotting = FALSE)
   expect_named(res, c("scaled_bn", "simil_struct_Ns"))
   expect_named(res$scaled_bn, c("N", "num_nosig", "scaled"))
+  expect_equal(attr(res$scaled_bn, "num_repet"), 40)
   expect_equal(range(res$scaled_bn$N), c(2, 150))
   expect_equal(nrow(res$scaled_bn), 20L)
   smooth <- res$simil_struct_Ns$smooth

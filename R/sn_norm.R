@@ -23,7 +23,7 @@
 #'   through the `future.seed` argument.
 #' @param replace Logical. Should subsampling be performed with replacement?
 #'
-#' @return A data frame with columns:
+#' @return A data frame with a `num_repet` attribute and columns:
 #' \describe{
 #'   \item{N}{Subsample size.}
 #'   \item{num_nosig}{Number of p-values greater than `alpha`.}
@@ -105,6 +105,9 @@ sn_norm <- function(vector_Nsub, n1, n2, num_repet = 60, test = "t-test", test_a
   }
 
   propsig[["scaled"]] <- propsig[["num_nosig"]]/scale
+
+  # Keep the number of trials for reproducible binomial smoothing.
+  attr(propsig, "num_repet") <- num_repet
 
   return(propsig)
 

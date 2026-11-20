@@ -56,7 +56,7 @@ similarity_structure(
 \value{
 A list with two components:
 \describe{
-\item{scaled_bn}{Data frame with N, num_nosig and scaled (count divided by its first value).}
+\item{scaled_bn}{Data frame with N, num_nosig and scaled (count divided by its first value), with the original number of tests stored in the \code{num_repet} attribute.}
 \item{simil_struct_Ns}{List containing smooth, fitting and Ns_diff. The smooth component contains vect_N_smooth, fun_smooth, Sn and Ns_smooth. The fitting component contains param_0, vect_N_fit, fun_fit, Gof_fit, Scale, param_Sn, Sn and Ns_fitting, or NULL if fitting fails.}
 }
 }
@@ -64,7 +64,9 @@ A list with two components:
 Estimate similarity structure between two samples
 }
 \details{
-The scaled empirical curve is distinct from the normalized similarity structure
+Smoothing uses a binomial GAM with a logit link and an unrestricted thin plate
+spline fitted by REML to the original non-rejection and rejection counts.
+Predictions are rescaled for plotting. The scaled empirical curve is distinct from the normalized similarity structure
 S(n). Smoothing uses finite support; fitting normalizes the infinite support
 starting at N_init. The returned fitted vector only covers a finite display
 range and need not sum to one. Compare structures using the same test,

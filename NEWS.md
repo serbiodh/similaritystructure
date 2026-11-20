@@ -6,8 +6,9 @@
 * Supply documented defaults and an approximately equidistant grid including both endpoints.
 * Retain smoothing when the parametric fit fails, validate inputs and restore the previous future plan.
 * Export adonis_ss for custom PERMANOVA tests.
+* Replace Gaussian smoothing with an unconstrained binomial GAM (logit link, REML), using original Monte Carlo counts. Retain the number of tests as an attribute of the empirical curve.
 * Document extraction of the similarity structure and comparison of effects.
 
-This version changes numerical results for pS and the subsampling grid.
+This version changes numerical results for pS, smoothing and the subsampling grid.
 Historical cached analyses should be preserved and new article results
 recomputed and checked before publication.

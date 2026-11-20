@@ -18,7 +18,9 @@
 #'
 #' @details The empirical probability of non-rejection is the number of
 #'   non-rejections divided by the number of repetitions. The curve used for
-#'   fitting is scaled by its first value. The similarity structure is the
+#'   parametric fitting is scaled by its first value. The smoothing approach
+#'   models the original counts with a binomial GAM (logit link, unrestricted
+#'   thin plate spline, REML); predictions are rescaled for plotting. The similarity structure is the
 #'   normalized distribution over integer subsample sizes, not this scaled curve.
 #'   Smoothing normalizes over the evaluated finite interval; parametric fitting
 #'   normalizes over the infinite support starting at `N_init`. The returned
@@ -28,7 +30,7 @@
 #'
 #' @return A list with two components:
 #' \describe{
-#'   \item{scaled_bn}{Data frame with `N`, `num_nosig` and `scaled` (count divided by the first count).}
+#'   \item{scaled_bn}{Data frame with `N`, `num_nosig` and `scaled` (count divided by the first count), with the original number of tests stored in the `num_repet` attribute.}
 #'   \item{simil_struct_Ns}{List with `smooth`, `fitting` and `Ns_diff` (signed percentage difference). `smooth` contains `vect_N_smooth`, `fun_smooth`, `Sn` and `Ns_smooth`. `fitting` contains `param_0`, `vect_N_fit`, `fun_fit`, `Gof_fit`, `Scale`, `param_Sn`, `Sn` and `Ns_fitting`, or NULL if fitting fails.}
 #' }
 #' @examples
@@ -106,7 +108,8 @@ similarity_structure <- function(n1, n2, N_init = 2, N_fin, num_N = 60, num_repe
 
   # Similarity structure and size
   simil_struct <- smooth_fitting_Ns(N_init, N_fin, propsig,
-                                    plotting = plotting, title_plot = title_plot)
+                                    plotting = plotting, title_plot = title_plot,
+                                    num_repet = num_repet)
 
   return(list(scaled_bn = propsig,
               simil_struct_Ns = simil_struct))

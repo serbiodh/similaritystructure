@@ -1,11 +1,12 @@
 #' Smooth and fit a scaled beta(n) curve
 #'
 #' Takes an empirical scaled beta(n) curve and estimates the corresponding
-#' similarity structure using two approaches: a smooth GAM-based approximation
+#' similarity structure using two approaches: a binomial GAM approximation with a logit link
 #' and a parametric fitted approximation.
 #'
-#' The smooth approach estimates a smoothed curve over a dense sequence of
-#' subsample sizes and normalizes it to obtain an expected similarity size. The
+#' The smooth approach models non-rejection counts using a binomial GAM with
+#' a logit link and an unconstrained thin plate spline (REML). Predictions
+#' are normalized over the finite sequence of integer subsample sizes. The
 #' fitting approach fits a parametric curve, normalizes it, and computes the
 #' corresponding expected similarity size.
 #'
@@ -13,7 +14,9 @@
 #' @param N_fin Numeric. Final subsample size.
 #' @param propsig Data frame or `data.table`. Empirical scaled beta(n) curve, usually
 #'   returned by `sn_norm()`. It must contain at least the columns `N` and
-#'   `scaled`.
+#'   `scaled` and `num_nosig`.
+#' @param num_repet Number of tests per subsample size (defaults to the
+#'   recorded `num_repet` attribute of the empirical curve).
 #' @param plotting Logical. Should the empirical, smoothed and fitted curves be
 #'   plotted?
 #' @param title_plot Optional character string. Plot title.
@@ -31,40 +34,17 @@
 #' @keywords internal
 
 smooth_fitting_Ns <- function(N_init, N_fin, propsig,
-                              plotting = TRUE, title_plot = NULL) {
+                              plotting = TRUE, title_plot = NULL,
+                              num_repet = attr(propsig, "num_repet")) {
 
   #############
   # Smoothing #
   #############
 
-  vect_N_smooth <- seq(N_init, N_fin, 1)
-
-  smooth_formula <- stats::as.formula(
-    sprintf("scaled ~ s(N, bs = 'tp', k = %d)", min(10L, nrow(propsig)))
-  )
-
-  smoothdata <- mgcv::gam(
-    smooth_formula,
-    data = propsig,
-    method = "REML"
-  )
-
-  fun_smooth <- stats::predict(
-    smoothdata,
-    newdata = data.frame(N = vect_N_smooth),
-    type = "response"
-  )
-
-  fun_smooth[fun_smooth < 0] <- 0
-
-  # Similarity structure (normalization)
-  if (!is.finite(sum(fun_smooth)) || sum(fun_smooth) <= 0) {
-    stop("The smoothed curve cannot be normalized.")
-  }
-  Sn_smooth <- fun_smooth/sum(fun_smooth)
-
-  # Similarity size
-  Ns_smooth <- sum(vect_N_smooth*Sn_smooth)/sum(Sn_smooth)
+  smooth <- smooth_binomial(N_init, N_fin, propsig, num_repet)
+  vect_N_smooth <- smooth$vect_N_smooth
+  fun_smooth <- smooth$fun_smooth
+  Ns_smooth <- smooth$Ns_smooth
 
 
   ###########
@@ -125,9 +105,9 @@ smooth_fitting_Ns <- function(N_init, N_fin, propsig,
     graphics::abline(v = 0, lty = "dashed")
     graphics::abline(v = Ns_smooth, col = "darkgreen")
     if (is.null(fitting)) {
-      graphics::legend("topright", "Smooth", col = "darkgreen", lty = "solid")
+      graphics::legend("topright", "Binomial GAM", col = "darkgreen", lty = "solid")
     } else {
-      graphics::legend("topright", c("Fitting", "Smooth"), col = c("darkred", "darkgreen"), lty = "solid")
+      graphics::legend("topright", c("Fitting", "Binomial GAM"), col = c("darkred", "darkgreen"), lty = "solid")
     }
 
   }
@@ -137,10 +117,7 @@ smooth_fitting_Ns <- function(N_init, N_fin, propsig,
   # Results #
   ###########
 
-  return(list(smooth = list(vect_N_smooth = vect_N_smooth,
-                            fun_smooth = fun_smooth,
-                            Sn = Sn_smooth,
-                            Ns_smooth = Ns_smooth),
+  return(list(smooth = smooth,
               fitting = fitting,
               Ns_diff = if (is.null(fitting)) NA_real_ else
                 (Ns_smooth-fitting$Ns_fitting)/fitting$Ns_fitting*100))

@@ -41,7 +41,7 @@ through the \code{future.seed} argument.}
 \item{replace}{Logical. Should subsampling be performed with replacement?}
 }
 \value{
-A data frame with columns:
+A data frame with a \code{num_repet} attribute and columns:
 \describe{
 \item{N}{Subsample size.}
 \item{num_nosig}{Number of p-values greater than \code{alpha}.}
