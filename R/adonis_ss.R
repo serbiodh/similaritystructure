@@ -7,7 +7,7 @@
 #'
 #' @return First row of the `adonis2()` table, including a `p.value` column.
 #'
-#' @keywords internal
+#' @export
 
 adonis_ss <- function(n1sub, n2sub,
                       subset_choice = c("Female", "Male", "yes", "no"),
@@ -20,7 +20,8 @@ adonis_ss <- function(n1sub, n2sub,
   subset_choice <- match.arg(subset_choice)
 
   D <- rbind(n1sub, n2sub)
-  D <- D[, rownames(D)]
+  D <- D[, rownames(D), drop = FALSE]
+  D <- stats::as.dist(D)
 
   if (subset_choice %in% c("Female", "Male")) {
     meta <- data.frame(

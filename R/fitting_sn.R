@@ -1,13 +1,13 @@
-#' Select a valid parametric fit for g(n)
+#' Select a valid parametric fit for beta(n)
 #'
-#' Fits and filters candidate parametric g(n) models. The function calls
+#' Fits and filters candidate parametric beta(n) models. The function calls
 #' `fitting_basic()` and then evaluates the fitted parameters to discard
 #' unsuitable fits, such as fits with invalid decay parameters or problematic
 #' curve shapes.
 #'
 #' @param vector_N Numeric vector. Subsample sizes used to estimate the empirical
-#'   P(N|>alpha) curve.
-#' @param PROB_N Numeric vector. Empirical scaled g(n) values corresponding
+#'   scaled beta(n) curve.
+#' @param PROB_N Numeric vector. Empirical scaled beta(n) values corresponding
 #'   to `vector_N`.
 #' @param Scale Numeric. Scaling factor passed to `fitting_basic()`.
 #'
@@ -18,17 +18,17 @@
 #'   \item{Gof}{Goodness-of-fit value for the selected model.}
 #'   \item{vect_N_fit}{Sequence of subsample sizes used to evaluate the fitted
 #'   curve.}
-#'   \item{func_fit}{Values of the fitted g(n) curve over `vect_N_fit`.}
+#'   \item{func_fit}{Values of the fitted beta(n) curve over `vect_N_fit`.}
 #' }
 #'
 #' @keywords internal
 
-fitting_pnalpha = function(vector_N, PROB_N, Scale){
+fitting_sn = function(vector_N, PROB_N, Scale){
 
-  # This script provides the fitting of a polynomial multiplied by exp(-d*N) to the probabilites g(n) vs. N's in 'vector_N'
+  # This script provides the fitting of a polynomial multiplied by exp(-d*N) to the probabilites beta(n) vs. N's in 'vector_N'
 
   # To substitute in the fitted function
-  vect_N = seq(vector_N[1], 4*vector_N[length(vector_N)], by=1)  # For the fitting the final x-value is the double of the sample size to ensure that the fitted function approaches to zero properly
+  vect_N = seq(vector_N[1], 4*vector_N[length(vector_N)], by=1)  # For the fitting the final x-value is four times the largest evaluated size to ensure that the fitted function approaches to zero properly
 
   # Obtaining p(>alpha | n1* ^ n2) from the fitting (n1* is a fixed value for n1; n2 remains variable)
   # Output_N = Fitting_Prob_Cond_Basic(vector_N, PROB_N)
@@ -37,6 +37,7 @@ fitting_pnalpha = function(vector_N, PROB_N, Scale){
   Aprox_0 = Output_N[[1]]
   Param_0 = Output_N[[2]]
   GOF_0 = Output_N[[3]]
+  if (length(GOF_0) == 0L) return(list(Success = 0))
 
   # Discard those cases with min < 0 and max > 1:
   minim = c()
@@ -71,7 +72,6 @@ fitting_pnalpha = function(vector_N, PROB_N, Scale){
 
   if (!any(ind_pos)) { # No fitting --> stop
     return(list(vector_N = vector_N, PROB_N = PROB_N, Success = 0))
-    stop('No successful fitting. Consider to redefine the interval of the sample size of N, increase the number of Ns and the number of repetitions. Vector of N and prob p_N(>alpha) are provided for checking')
   }
   Aprox = Aprox_0[ind_pos]
   Param = Param_0[ind_pos, ]
@@ -92,7 +92,6 @@ fitting_pnalpha = function(vector_N, PROB_N, Scale){
 
   } else{  # No fitting was successful
     return(list(vector_N = vector_N, PROB_N = PROB_N, Success = 0))
-    stop('No successful fitting. Consider to redefine the interval of the child sample size N or increase the number of Ns. Vector of N and prob p_N(>alpha) are provided for checking')
   }
 
   # Fitted function:

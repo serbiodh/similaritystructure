@@ -31,8 +31,8 @@ subsampling_testing <- function(n1, n2, nsub, test = "t-test", test_args = NULL,
     ind_2 <- sample(nrow(n2), nsub, replace = replace)
 
     # Obtain the random subsamples of size vector_N[i] from Sample_2 and size vector_N[i] from Sample_1, respectively
-    n1sub <- n1[ind_1, ]
-    n2sub <- n2[ind_2, ]
+    n1sub <- n1[ind_1, , drop = FALSE]
+    n2sub <- n2[ind_2, , drop = FALSE]
 
   } else {
     stop('Mismatching or wrong data dimensions (> 2)')
@@ -54,8 +54,9 @@ subsampling_testing <- function(n1, n2, nsub, test = "t-test", test_args = NULL,
     stop("'test' must be either a character string or a function.")
   }
 
-  if (is.null(res$p.value)) {
-    stop("The test function must return an object with a 'p.value' element.")
+  if (!is.numeric(res$p.value) || length(res$p.value) != 1L ||
+      !is.finite(res$p.value) || res$p.value < 0 || res$p.value > 1) {
+    stop("The test must return a finite numeric 'p.value' between 0 and 1.")
   }
 
   res$p.value

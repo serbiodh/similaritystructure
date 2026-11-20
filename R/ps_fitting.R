@@ -1,7 +1,7 @@
-#' Tail probability from p(n) distribution
+#' Tail probability from S(n) distribution
 #'
-#' Computes the probability that the similarity size is greater than or equal to
-#' a given threshold `M`, using the normalized p(n) distribution.
+#' Computes the probability that the subsample size is greater than or equal to
+#' a given threshold `M`, using the normalized S(n) distribution.
 #'
 #' @param Param_Final Numeric vector. Normalized fitted parameters.
 #' @param M Numeric. Lower threshold for the tail probability.
@@ -16,7 +16,7 @@
 
 ps_fitting <- function(Param_Final, M){
 
-  # This script calculates the prob of N >= M given by p(n)
+  # This script calculates the prob of N >= M given by S(n)
 
   # This script applies Bayes's theorem numercally, i.e., as
   # p(N | >alpha) = p(>alpha | N)/sum_N( p(>alpha | N) ), the sum of
@@ -30,7 +30,7 @@ ps_fitting <- function(Param_Final, M){
   a = Param_Final[1]; b = Param_Final[2]; c = Param_Final[3];
   d = Param_Final[4]; e = Param_Final[5]
 
-  m = M
+  m = ceiling(M)
 
   # sum( exp(-d*N) ) with N from m to inf:
   t0_inf = (exp(-d*(m - 1)))/(-1+exp(d));

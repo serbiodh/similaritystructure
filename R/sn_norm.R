@@ -1,4 +1,4 @@
-#' Scaled g(n)/K curve
+#' Compute the empirical scaled beta(n) curve
 #'
 #' Computes the empirical proportion of non-significant tests across a sequence
 #' of subsample sizes. For each subsample size, the function repeatedly samples
@@ -23,7 +23,7 @@
 #'   through the `future.seed` argument.
 #' @param replace Logical. Should subsampling be performed with replacement?
 #'
-#' @return A `data.table` with columns:
+#' @return A data frame with columns:
 #' \describe{
 #'   \item{N}{Subsample size.}
 #'   \item{num_nosig}{Number of p-values greater than `alpha`.}
@@ -32,7 +32,7 @@
 #'
 #' @keywords internal
 
-pnalpha_scaled <- function(vector_Nsub, n1, n2, num_repet = 60, test = "t-test", test_args = NULL, alpha = 0.05,
+sn_norm <- function(vector_Nsub, n1, n2, num_repet = 60, test = "t-test", test_args = NULL, alpha = 0.05,
                            seed = 12345, replace = TRUE) {
 
   ######################
@@ -43,6 +43,8 @@ pnalpha_scaled <- function(vector_Nsub, n1, n2, num_repet = 60, test = "t-test",
   workers <- max(1, parallel::detectCores() - 1)
 
   # Start multi-core work
+  old_plan <- future::plan()
+  on.exit(future::plan(old_plan), add = TRUE)
   future::plan(future::multisession, workers = workers)
 
   # Show progress bar
@@ -53,7 +55,7 @@ pnalpha_scaled <- function(vector_Nsub, n1, n2, num_repet = 60, test = "t-test",
     p <- progressr::progressor(along = vector_Nsub) # start progress bar
 
     ################################
-    # Estimate P(N|>alfa) directly #
+    # Estimate scaled beta(n) directly #
     ################################
     pnalpha <- future.apply::future_lapply(vector_Nsub,
                                            function(x) {
@@ -70,8 +72,6 @@ pnalpha_scaled <- function(vector_Nsub, n1, n2, num_repet = 60, test = "t-test",
 
   })
 
-  # Stop multi-core working
-  future::plan(future::sequential)
 
   # Turn into data frame
   names(pnalpha) <- vector_Nsub
@@ -100,7 +100,9 @@ pnalpha_scaled <- function(vector_Nsub, n1, n2, num_repet = 60, test = "t-test",
 
   # Scale to 1 so initial values of fitting work later on
   scale <- propsig$num_nosig[1]
-  # scale <- propsig$num_nosig %>% sum()
+  if (length(scale) != 1L || !is.finite(scale) || scale <= 0) {
+    stop("No non-rejections at the first subsample size; cannot scale the curve. Consider a smaller N_init or more repetitions.")
+  }
 
   propsig[["scaled"]] <- propsig[["num_nosig"]]/scale
 
