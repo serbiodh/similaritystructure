@@ -10,5 +10,8 @@
 * Document extraction of the similarity structure and comparison of effects.
 
 This version changes numerical results for pS, smoothing and the subsampling grid.
+* Restrict main examples to normal mean differences, BMI and gut microbiome. Remove the skewness and eye-tracking examples and associated data. Retain standard-deviation material separately for the supplement.
+* Add a cached-result updater that recalculates binomial smoothing from original counts without rerunning subsampling or fitting. Add a provisional NHANES BMI reconstruction pending comparison with the original analysis.
+
 Historical cached analyses should be preserved and new article results
 recomputed and checked before publication.

@@ -20,7 +20,7 @@ Sys.setlocale("LC_TIME", "C")
 
 # Libraries and functions
 
-Cached results were generated with earlier versions of the package. Field names are migrated when loaded; pS is calculated with the current definition. Recompute the similarity structures to obtain results using the current subsample-size grid.
+Cached results were generated with earlier versions of the package. The original Monte Carlo counts are retained; the binomial GAM is fitted on loading, using K = 300 as specified in the original example. The parametric fitting is retained and pS is calculated with the current definition. To reproduce the current subsample-size grid, repeat the underlying subsampling.
 
 ```{r}
 library(tictoc)
@@ -35,7 +35,7 @@ library(viridis)
 
 # Similarity structure
 library(similaritystructure)
-source(system.file("examples", "upgrade_cached_results.R", package = "similaritystructure"))
+source(system.file("scripts", "upgrade_cached_results.R", package = "similaritystructure"))
 
 ```
 
@@ -83,7 +83,7 @@ names(ssmany) <- mean_shift
 # Load similarity structures
 # Change "example_01_ks" to "example_01_ttest"
 filename <- system.file("extdata", "example_01_ks.RData", package = "similaritystructure")
-datafile <- lapply(readRDS(filename), upgrade_ss)
+datafile <- lapply(readRDS(filename), upgrade_ss, num_repet = 300)
 mean_shift <- seq(0.05, 1.2, 0.05)
 
 par(mfrow = c(4, 6), mar = c(4, 4, 2, 0.3), bg = "gray", cex = 1.2)
@@ -103,7 +103,7 @@ for (i in mean_shift) {
   abline(v = 0, lty = "dashed")
   abline(v = fitdata$Ns_fitting, col = "darkred")
   abline(v = smoothdata$Ns_smooth, col = "darkgreen")
-  legend("topright", c("Fitting", "Smooth"), col = c("darkred", "darkgreen"), lty = "solid")
+  legend("topright", c("Fitting", "Binomial GAM"), col = c("darkred", "darkgreen"), lty = "solid")
   
 }
 
@@ -115,7 +115,7 @@ for (i in mean_shift) {
 # Load similarity structures
 # Change "example_01_ks" to "example_01_ttest"
 filename <- system.file("extdata", "example_01_ks.RData", package = "similaritystructure")
-datafile <- lapply(readRDS(filename), upgrade_ss)
+# Reuse the results loaded and updated above.
 mean_shift <- seq(0.05, 1.2, 0.05)
 
 # Colors
@@ -151,7 +151,7 @@ for (i in rev(mean_shift)) {
 # Smoothing
 plot(0, 0, xlim = c(log10(2), 3), ylim = c(0, 0.10), type = "n", xaxt = "n",
      ylab = "p(n)", xlab = "Subsample size", 
-     main = "Smooth")
+     main = "Binomial GAM")
 axis(1, at = c(1, 2, 3),
      labels = expression(10^1, 10^2, 10^3))
 
@@ -174,7 +174,7 @@ for (i in rev(mean_shift)) {
 # Load similarity structures
 # Change "example_01_ks" to "example_01_ttest"
 filename <- system.file("extdata", "example_01_ks.RData", package = "similaritystructure")
-datafile <- lapply(readRDS(filename), upgrade_ss)
+# Reuse the results loaded and updated above.
 
 comparisons <- combn(seq_along(datafile), 2)
 

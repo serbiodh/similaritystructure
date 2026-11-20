@@ -20,14 +20,13 @@ Sys.setlocale("LC_TIME", "C")
 
 # Libraries and functions
 
-Cached results were generated with earlier versions of the package. Field names are migrated when loaded; pS is calculated with the current definition. Recompute the similarity structures to obtain results using the current subsample-size grid.
+Cached results were generated with earlier versions of the package. The original Monte Carlo counts are retained; the binomial GAM is fitted on loading, using K = 300 as specified in the original example. The parametric fitting is retained and pS is calculated with the current definition. To reproduce the current subsample-size grid, repeat the underlying subsampling.
 
 ```{r}
 library(tictoc)
 library(data.table)
 library(dplyr)
 library(tidyr)
-library(R.matlab)
 library(pbapply)
 library(ggplot2)
 library(stringr)
@@ -36,7 +35,7 @@ library(viridis)
 
 # Similarity structure
 library(similaritystructure)
-source(system.file("examples", "upgrade_cached_results.R", package = "similaritystructure"))
+source(system.file("scripts", "upgrade_cached_results.R", package = "similaritystructure"))
 
 ```
 
@@ -129,7 +128,7 @@ for (i in 1:4) {
 # Load similarity structures
 datadir <- system.file("extdata", package = "similaritystructure")
 datalist <- list.files(datadir, pattern = "example_05", full.names = T)
-ssfiles <- lapply(datalist, function(x) upgrade_ss(readRDS(x)))
+ssfiles <- lapply(datalist, function(x) upgrade_ss(readRDS(x), num_repet = 300))
 file_labels <- c("example_05_Female.RData" = "Ws_Wns", "example_05_Male.RData" = "Ms_Mns",
                 "example_05_no_smokers.RData" = "Wns_Mns", "example_05_yes_smokers.RData" = "Ws_Ms")
 names(ssfiles) <- unname(file_labels[basename(datalist)])
@@ -153,7 +152,7 @@ for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
   abline(v = 0, lty = "dashed")
   abline(v = fitdata$Ns_fitting, col = "darkred")
   abline(v = smoothdata$Ns_smooth, col = "darkgreen")
-  legend("topright", c("Fitting", "Smooth"), col = c("darkred", "darkgreen"), lty = "solid")
+  legend("topright", c("Fitting", "Binomial GAM"), col = c("darkred", "darkgreen"), lty = "solid")
   
 }
 
@@ -161,15 +160,13 @@ for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
 
 # Plot all S(n)
 
+The Male smoking contrast has limited empirical support; the manuscript reports its parametric estimate only. The finite-interval GAM is displayed here as a diagnostic and should not be used to replace that extrapolated estimate without checking the support.
+
 ```{r, fig.width=10, fig.height=5}
 # Load similarity structures
 datadir <- system.file("extdata", package = "similaritystructure")
 datalist <- list.files(datadir, pattern = "example_05", full.names = T)
-ssfiles <- lapply(datalist, function(x) upgrade_ss(readRDS(x)))
-file_labels <- c("example_05_Female.RData" = "Ws_Wns", "example_05_Male.RData" = "Ms_Mns",
-                "example_05_no_smokers.RData" = "Wns_Mns", "example_05_yes_smokers.RData" = "Ws_Ms")
-names(ssfiles) <- unname(file_labels[basename(datalist)])
-stopifnot(!anyNA(names(ssfiles)))
+# Reuse the results loaded and updated above.
 
 jet <- function(n) {
   colorRampPalette(c(
@@ -204,7 +201,7 @@ legend("topright", c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms"), col = cols, lty = 
 # Smoothing
 plot(0, 0, xlim = c(2, 100), ylim = c(0, 0.065), type = "n",
      ylab = "S(n)", xlab = "Subsample size", 
-     main = "Smooth")
+     main = "Binomial GAM")
 
 for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
   
@@ -227,11 +224,7 @@ legend("topright", c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms"), col = cols, lty = 
 # Load similarity structures
 datadir <- system.file("extdata", package = "similaritystructure")
 datalist <- list.files(datadir, pattern = "example_05", full.names = T)
-ssfiles <- lapply(datalist, function(x) upgrade_ss(readRDS(x)))
-file_labels <- c("example_05_Female.RData" = "Ws_Wns", "example_05_Male.RData" = "Ms_Mns",
-                "example_05_no_smokers.RData" = "Wns_Mns", "example_05_yes_smokers.RData" = "Ws_Ms")
-names(ssfiles) <- unname(file_labels[basename(datalist)])
-stopifnot(!anyNA(names(ssfiles)))
+# Reuse the results loaded and updated above.
 
 pares <- combn(seq_along(ssfiles), 2)
 

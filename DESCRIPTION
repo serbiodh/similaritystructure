@@ -35,7 +35,15 @@ Imports:
     graphics
 Suggests:
     vegan,
-    sn,
+    haven,
+    tictoc,
+    dplyr,
+    tidyr,
+    pbapply,
+    ggplot2,
+    stringr,
+    patchwork,
+    viridis,
 	knitr,
 	rmarkdown,
     testthat (>= 3.0.0)

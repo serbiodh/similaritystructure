@@ -51,8 +51,11 @@ if (!is.null(AB$simil_struct_Ns$fitting)) {
 }
 ```
 
-The empirical non-rejection curve is scaled by its first value before
-smoothing and fitting. It is not the similarity structure itself.
+The empirical non-rejection curve is scaled by its first value for
+parametric fitting. Smoothing uses the original counts in a binomial GAM
+with a logit link and an unconstrained thin plate spline (REML), then
+rescales the predictions for graphical comparison. Neither scaled curve
+is the similarity structure itself.
 The smoothed SS is normalized over the finite interval; the fitted SS
 is normalized over the infinite support starting at N_init. The returned
 fitted vector only covers a finite display range and need not sum to one.
@@ -89,10 +92,18 @@ For more information, run `?similarity_structure` and `?prob_effect`.
 
 ## Example files
 
-The package includes cached results and reproducible R Markdown scripts.
-Cached results were generated with earlier package versions. The examples
-migrate field names on loading; recompute the similarity structures to
-use the current subsample-size grid.
+The main-text examples are:
+
+- `example_01_mean.Rmd`: normal samples with different means (Figure 3).
+- `example_02_bmi.Rmd`: NHANES BMI and smoking status (Figure 4; reconstruction pending verification against the original analysis).
+- `example_03_betadivers.Rmd`: gut microbiome composition (Figure 5).
+
+Historical cached results for the normal and microbiome examples retain
+original Monte Carlo counts. They are updated to the binomial GAM on loading,
+without repeating tests or refitting the parametric models. To reproduce the
+current subsample-size grid, repeat the underlying subsampling.
+The standard-deviation example is retained separately under `supplementary/`
+for the supporting normal-distribution analyses (Supplementary Figure S5.B).
 
 ```r
 system.file("extdata", package = "similaritystructure")
@@ -104,6 +115,17 @@ file.edit(file)
 ```
 
 The examples may require additional packages (tictoc, data.table, dplyr,
-tidyr, pbapply, ggplot2, stringr, patchwork, viridis, R.matlab, vegan,
-sn and fasano.franceschini.test). Install the relevant packages before
-running the examples.
+tidyr, pbapply, ggplot2, stringr, patchwork, viridis, vegan and haven).
+Install the relevant packages before running the examples.
+
+To update your own saved results without repeating subsampling:
+
+```r
+source(system.file("scripts", "upgrade_cached_results.R",
+                   package = "similaritystructure"))
+# Supply the VERIFIED number of tests per subsample size from the original run.
+upgrade_cached_file("original.rds", "updated_binomial.rds", num_repet = 300)
+```
+
+The updater preserves the original empirical grid and parametric fitting.
+It writes a separate file and never overwrites the original results.

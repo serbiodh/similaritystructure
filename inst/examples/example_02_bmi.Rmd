@@ -1,0 +1,130 @@
+---
+title: "Body mass index across smoking-status groups (NHANES 2017-2018)"
+output: html_document
+---
+
+This example implements the BMI analysis described in Figure 4 of the
+manuscript. The original analysis script, saved similarity structures and
+exact SS calculation settings are not yet available in this repository.
+The code below reconstructs the cohort from public NHANES files and uses
+explicit provisional analysis settings. Check the cohort and settings
+against the authors' original analysis before treating the output as a
+reproduction of Figure 4.
+
+## Data preparation
+
+The CDC files are DEMO_J (age), BMX_J (body measures) and SMQ_J
+(cigarette use). Smoking status is defined according to the responses to
+SMQ020 and SMQ040. This is an unweighted analysis of the observed sample
+to match the ordinary Welch tests described in the manuscript; it is
+not a survey-weighted estimate for the US population.
+
+```{r}
+library(similaritystructure)
+# install.packages("haven")
+library(haven)
+
+base_url <- "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/"
+
+# Download each public data file once to a temporary directory.
+read_nhanes <- function(name) {
+  file <- tempfile(fileext = ".XPT")
+  on.exit(unlink(file))
+  download.file(paste0(base_url, name, ".XPT"), file,
+                mode = "wb", quiet = TRUE)
+  as.data.frame(haven::read_xpt(file))
+}
+
+demo <- read_nhanes("DEMO_J")[, c("SEQN", "RIDAGEYR")]
+bmx  <- read_nhanes("BMX_J")[, c("SEQN", "BMXBMI")]
+smq  <- read_nhanes("SMQ_J")[, c("SEQN", "SMQ020", "SMQ040")]
+
+dat <- merge(merge(demo, bmx, by = "SEQN"), smq, by = "SEQN")
+dat <- dat[!is.na(dat$RIDAGEYR) & dat$RIDAGEYR >= 20 &
+             is.finite(dat$BMXBMI), ]
+dat$Smoking <- NA_character_
+dat$Smoking[which(dat$SMQ020 == 2)] <- "Never"
+dat$Smoking[which(dat$SMQ020 == 1 & dat$SMQ040 == 3)] <- "Former"
+dat$Smoking[which(dat$SMQ020 == 1 & dat$SMQ040 %in% c(1, 2))] <- "Current"
+dat <- dat[!is.na(dat$Smoking), ]
+dat$Smoking <- factor(dat$Smoking, levels = c("Never", "Former", "Current"))
+
+groups <- split(dat$BMXBMI, dat$Smoking)
+observed <- data.frame(Group = names(groups), N = lengths(groups),
+                       Mean = vapply(groups, mean, numeric(1)))
+observed
+# Cohort reported in the manuscript: verify before continuing.
+expected <- c(Never = 3234L, Former = 1329L, Current = 1006L)
+if (!all(lengths(groups) == expected)) {
+  warning("Cohort counts differ from the manuscript: check original exclusions.")
+}
+```
+
+## Pairwise Welch tests and Cohen's d
+
+```{r}
+pairs <- list("F-C" = c("Former", "Current"),
+              "F-N" = c("Former", "Never"),
+              "N-C" = c("Never", "Current"))
+
+contrasts <- do.call(rbind, lapply(names(pairs), function(nm) {
+  a <- groups[[pairs[[nm]][1]]]
+  b <- groups[[pairs[[nm]][2]]]
+  pooled_sd <- sqrt(((length(a)-1)*var(a) + (length(b)-1)*var(b)) /
+                      (length(a)+length(b)-2))
+  data.frame(Comparison = nm, Mean_diff = mean(a)-mean(b),
+             Cohen_d = (mean(a)-mean(b))/pooled_sd,
+             p = t.test(a, b)$p.value)
+}))
+contrasts$p_Holm <- p.adjust(contrasts$p, method = "holm")
+contrasts
+```
+
+## Similarity structures and pS
+
+The following calculation settings are provisional: the original N_fin
+values, seed and replacement setting are not reported in the draft.
+The limits below do not exceed the smaller original group. In particular,
+the smallest BMI effect may have a non-negligible tail at that limit;
+inspect the fit and do not interpret a truncated smooth result as an
+infinite-support estimate.
+
+```{r}
+N_fin <- vapply(pairs, function(p) min(lengths(groups[p])), integer(1))
+q <- 60L
+K <- 300L
+alpha <- 0.05
+seed <- 12345L
+
+ss <- lapply(seq_along(pairs), function(i) {
+  p <- pairs[[i]]
+  similarity_structure(groups[[p[1]]], groups[[p[2]]],
+    N_init = 2, N_fin = N_fin[i], num_N = q, num_repet = K,
+    test = "t-test", replace = TRUE, alpha = alpha,
+    seed = seed + i, plotting = TRUE, title_plot = names(pairs)[i])
+})
+names(ss) <- names(pairs)
+
+ns <- data.frame(Comparison = names(ss),
+  Smooth = vapply(ss, function(x) x$simil_struct_Ns$smooth$Ns_smooth, numeric(1)),
+  Fitting = vapply(ss, function(x) {
+    f <- x$simil_struct_Ns$fitting
+    if (is.null(f)) NA_real_ else f$Ns_fitting
+  }, numeric(1)))
+ns
+
+comparisons <- combn(names(ss), 2, simplify = FALSE)
+ps <- do.call(rbind, lapply(comparisons, function(p) {
+  a <- ss[[p[1]]]$simil_struct_Ns
+  b <- ss[[p[2]]]$simil_struct_Ns
+  data.frame(Comparison = paste(p, collapse = " vs "),
+    ps_smooth = prob_effect(smooth_A = a$smooth, smooth_B = b$smooth),
+    ps_fit = if (is.null(a$fitting) || is.null(b$fitting)) NA_real_ else
+      prob_effect(fitting_A = a$fitting, fitting_B = b$fitting))
+}))
+ps
+```
+
+CDC documentation: [DEMO_J](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/DEMO_J.htm),
+[BMX_J](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/BMX_J.htm),
+[SMQ_J](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/SMQ_J.htm).
