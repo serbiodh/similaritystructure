@@ -7,10 +7,10 @@
 similarity_structure(
   n1,
   n2,
-  N_init,
+  N_init = 2,
   N_fin,
-  num_N,
-  num_repet,
+  num_N = 60,
+  num_repet = 300,
   replace = TRUE,
   test,
   test_args = NULL,
@@ -45,9 +45,9 @@ similarity_structure(
 
 \item{seed}{Seed used by the parallel backend.}
 
-\item{sav}{Logical. Should the scaled g(n) object be saved?}
+\item{sav}{Logical. Should the scaled beta(n) object be saved?}
 
-\item{sav_file}{Optional file path for saving the empirical PN-alpha object.}
+\item{sav_file}{Optional file path for saving the empirical similarity structure object.}
 
 \item{plotting}{Logical. Should the fitted and smoothed curves be plotted?}
 
@@ -56,10 +56,34 @@ similarity_structure(
 \value{
 A list with two components:
 \describe{
-\item{scaled_gn}{Scaled g(n) curve.}
-\item{simil_struct_Ns}{Estimated similarity structure.}
+\item{scaled_bn}{Data frame with N, num_nosig and scaled (count divided by its first value).}
+\item{simil_struct_Ns}{List containing smooth, fitting and Ns_diff. The smooth component contains vect_N_smooth, fun_smooth, Sn and Ns_smooth. The fitting component contains param_0, vect_N_fit, fun_fit, Gof_fit, Scale, param_Sn, Sn and Ns_fitting, or NULL if fitting fails.}
 }
 }
 \description{
 Estimate similarity structure between two samples
 }
+\details{
+The scaled empirical curve is distinct from the normalized similarity structure
+S(n). Smoothing uses finite support; fitting normalizes the infinite support
+starting at N_init. The returned fitted vector only covers a finite display
+range and need not sum to one. Compare structures using the same test,
+significance level and compatible sample-size supports.
+}
+\examples{
+\dontrun{
+set.seed(123)
+A <- rnorm(1000)
+B <- rnorm(1000, 0.8)
+res <- similarity_structure(A, B, N_fin = 150, test = "t-test", seed = 123)
+res$simil_struct_Ns$smooth$Sn
+res$simil_struct_Ns$smooth$Ns_smooth
+plot(res$simil_struct_Ns$smooth$vect_N_smooth,
+     res$simil_struct_Ns$smooth$Sn, type = "l")
+if (!is.null(res$simil_struct_Ns$fitting)) {
+  res$simil_struct_Ns$fitting$Sn
+  res$simil_struct_Ns$fitting$Ns_fitting
+}
+}
+}
+\seealso{\code{\link{prob_effect}}}

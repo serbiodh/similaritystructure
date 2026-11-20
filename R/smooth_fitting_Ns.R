@@ -1,6 +1,6 @@
 #' Smooth and fit a scaled beta(n) curve
 #'
-#' Takes an empirical scaled scaled beta(n) curve and estimates the corresponding
+#' Takes an empirical scaled beta(n) curve and estimates the corresponding
 #' similarity structure using two approaches: a smooth GAM-based approximation
 #' and a parametric fitted approximation.
 #'
@@ -23,7 +23,7 @@
 #'   \item{smooth}{List containing the smooth approximation, normalized smooth
 #'   curve, evaluated subsample sizes and smooth similarity size.}
 #'   \item{fitting}{List containing the parametric fit, fitted curve,
-#'   goodness-of-fit value, normalized parameters, normalized beta(n)
+#'   goodness-of-fit value, normalized parameters, similarity structure S(n)
 #'   distribution and fitted similarity size.}
 #'   \item{Ns_diff}{Difference between the fitted and smoothed similarity sizes.}
 #' }
@@ -113,7 +113,7 @@ smooth_fitting_Ns <- function(N_init, N_fin, propsig,
       propsig$scaled,
       type = 'l',
       col = "black",lwd=1.5,
-      ylab = "scaled beta(n) scaled",
+      ylab = "Scaled beta(n)",
       xlab = "Subsample size",
       main = title_plot)
     if (!is.null(fitting)) {

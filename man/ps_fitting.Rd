@@ -2,7 +2,7 @@
 % Please edit documentation in R/ps_fitting.R
 \name{ps_fitting}
 \alias{ps_fitting}
-\title{Tail probability from p(n) distribution}
+\title{Tail probability from S(n) distribution}
 \usage{
 ps_fitting(Param_Final, M)
 }
@@ -18,7 +18,7 @@ A list with one component:
 }
 }
 \description{
-Computes the probability that the similarity size is greater than or equal to
-a given threshold \code{M}, using the normalized p(n) distribution.
+Computes the probability that the subsample size is greater than or equal to
+a given threshold \code{M}, using the normalized S(n) distribution.
 }
 \keyword{internal}

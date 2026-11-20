@@ -8,7 +8,7 @@ fitting_simil_size(Param_Final, N_init)
 }
 \arguments{
 \item{Param_Final}{Numeric vector. Normalized fitted parameters, usually
-returned by \code{fitting_pnalpha_norm()}.}
+returned by \code{fitting_sn_norm()}.}
 
 \item{N_init}{Numeric. Initial subsample size used as the lower bound of the
 similarity-size calculation.}
@@ -21,6 +21,6 @@ A list with one component:
 }
 \description{
 Computes the expected similarity size from the normalized parameters of the
-fitted p(n) distribution.
+fitted S(n) distribution.
 }
 \keyword{internal}
