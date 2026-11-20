@@ -1,26 +1,24 @@
 test_that("similarity_structure returns expected structure", {
+  set.seed(12345)
+  A <- rnorm(1000)
+  B <- rnorm(1000, .8)
+  res <- similarity_structure(A, B, N_init = 2, N_fin = 150,
+                              num_N = 20, num_repet = 40,
+                              test = "t-test", seed = 12345,
+                              plotting = FALSE)
+  expect_named(res, c("scaled_bn", "simil_struct_Ns"))
+  expect_named(res$scaled_bn, c("N", "num_nosig", "scaled"))
+  expect_equal(range(res$scaled_bn$N), c(2, 150))
+  expect_equal(nrow(res$scaled_bn), 20L)
+  smooth <- res$simil_struct_Ns$smooth
+  expect_equal(sum(smooth$Sn), 1)
+  expect_equal(smooth$Ns_smooth, sum(smooth$Sn * smooth$vect_N_smooth))
+})
 
-  seed <- 12345
-  set.seed(seed)
-
-  n1 <- rnorm(20000, 0, 1)
-  n2 <- n1 + 0.8
-
-  res <- similarity_structure(
-    n1 = n1,
-    n2 = n2,
-    N_init = 2,
-    N_fin = round((80/0.8^2)),
-    num_N = 60,
-    num_repet = 300,
-    test = "t-test",
-    alpha = 0.05,
-    seed <- seed,
-    plotting = TRUE
-  )
-
-  expect_type(res, "list")
-  expect_named(res, c("scaled_gn", "simil_struct_Ns"))
-  expect_true("N" %in% names(res$scaled_gn))
-  expect_true("scaled" %in% names(res$scaled_gn))
+test_that("invalid inputs fail clearly", {
+  expect_error(similarity_structure(1:10, 1:10, N_fin = 11,
+                                    replace = FALSE, test = "t-test"),
+               "exceeds")
+  expect_error(similarity_structure(1:10, 1:10, N_init = 1,
+                                    N_fin = 10, test = "t-test"), "N_init")
 })

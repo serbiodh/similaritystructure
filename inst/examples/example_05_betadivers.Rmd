@@ -20,6 +20,8 @@ Sys.setlocale("LC_TIME", "C")
 
 # Libraries and functions
 
+Cached results were generated with earlier versions of the package. Field names are migrated when loaded; pS is calculated with the current definition. Recompute the similarity structures to obtain results using the current subsample-size grid.
+
 ```{r}
 library(tictoc)
 library(data.table)
@@ -34,16 +36,19 @@ library(viridis)
 
 # Similarity structure
 library(similaritystructure)
+source(system.file("examples", "upgrade_cached_results.R", package = "similaritystructure"))
 
 ```
 
 # Similarity structure
 
-```{r}
+Run this block only to recompute the analysis.
+
+```{r, eval = FALSE}
 # Read the data
-distfile <- system.file("extdata", "distances_full.csv", package = "similaritystructure")
+distfile <- system.file("extdata", "distancias_full.csv", package = "similaritystructure")
 metafile <- system.file("extdata", "meta_full.csv", package = "similaritystructure")
-betadist <- read.csv(distfile)
+betadist <- read.csv(distfile, check.names = FALSE)
 betameta <- read.csv(metafile)
 
 # ---- distance matrix and metadata ----
@@ -102,7 +107,7 @@ for (i in 1:4) {
                              num_N, 
                              num_repet,
                              replace = FALSE,
-                             test = adonis_ss,
+                             test = similaritystructure::adonis_ss,
                              test_args = list(subset_choice = comparisons[i]),
                              alpha = alpha,
                              seed = seed,
@@ -124,8 +129,11 @@ for (i in 1:4) {
 # Load similarity structures
 datadir <- system.file("extdata", package = "similaritystructure")
 datalist <- list.files(datadir, pattern = "example_05", full.names = T)
-ssfiles <- lapply(datalist, function(x) readRDS(x))
-names(ssfiles) <- c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")
+ssfiles <- lapply(datalist, function(x) upgrade_ss(readRDS(x)))
+file_labels <- c("example_05_Female.RData" = "Ws_Wns", "example_05_Male.RData" = "Ms_Mns",
+                "example_05_no_smokers.RData" = "Wns_Mns", "example_05_yes_smokers.RData" = "Ws_Ms")
+names(ssfiles) <- unname(file_labels[basename(datalist)])
+stopifnot(!anyNA(names(ssfiles)))
 
 # Plot
 par(mfrow = c(1,4), mar = c(4, 4, 2, 0.3), bg = "gray", cex = 1.2)
@@ -133,12 +141,12 @@ par(mfrow = c(1,4), mar = c(4, 4, 2, 0.3), bg = "gray", cex = 1.2)
 for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
   
   plotdata <- ssfiles[[as.character(i)]]
-  propsig <- plotdata$empiric_PNalpha
+  propsig <- plotdata$scaled_bn
   smoothdata <- plotdata$simil_struct_Ns$smooth
   fitdata <- plotdata$simil_struct_Ns$fitting
   
   plot(propsig$N, propsig$scaled, type = 'l', col = "black",lwd=1.5, 
-       ylab = "Scaled g(n)", xlab = "Subsample size",
+       ylab = "Scaled beta(n)", xlab = "Subsample size",
        main = i)
   lines(fitdata$vect_N_fit, fitdata$Scale*fitdata$fun_fit, type = 'l', col = "darkred",lwd=1.5)
   lines(smoothdata$vect_N_smooth, smoothdata$fun_smooth, col = "darkgreen")
@@ -151,14 +159,17 @@ for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
 
 ```
 
-# Plot all p(n)
+# Plot all S(n)
 
 ```{r, fig.width=10, fig.height=5}
 # Load similarity structures
 datadir <- system.file("extdata", package = "similaritystructure")
 datalist <- list.files(datadir, pattern = "example_05", full.names = T)
-ssfiles <- lapply(datalist, function(x) readRDS(x))
-names(ssfiles) <- c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")
+ssfiles <- lapply(datalist, function(x) upgrade_ss(readRDS(x)))
+file_labels <- c("example_05_Female.RData" = "Ws_Wns", "example_05_Male.RData" = "Ms_Mns",
+                "example_05_no_smokers.RData" = "Wns_Mns", "example_05_yes_smokers.RData" = "Ws_Ms")
+names(ssfiles) <- unname(file_labels[basename(datalist)])
+stopifnot(!anyNA(names(ssfiles)))
 
 jet <- function(n) {
   colorRampPalette(c(
@@ -175,14 +186,14 @@ par(mfrow = c(1,2), mar = c(4, 4, 2, 0.3), bg = "gray", cex = 1.2)
 
 # Fitting
 plot(0, 0, xlim = c(2,100), ylim = c(0, 0.065), type = "n",
-     ylab = "Palfa(N)", xlab = "Subsample size", 
+     ylab = "S(n)", xlab = "Subsample size", 
      main = "Fitting")
 
 for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
   
   plotdata <- ssfiles[[as.character(i)]]
   logN <- plotdata$simil_struct_Ns$fitting$vect_N_fit
-  fitdata <- plotdata$simil_struct_Ns$fitting$P_N_alpha
+  fitdata <- plotdata$simil_struct_Ns$fitting$Sn
   
   lines(logN, fitdata, type = 'l', col = cols[as.character(i)], lwd=1.5)
 
@@ -192,14 +203,14 @@ legend("topright", c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms"), col = cols, lty = 
 
 # Smoothing
 plot(0, 0, xlim = c(2, 100), ylim = c(0, 0.065), type = "n",
-     ylab = "Palfa(N)", xlab = "Subsample size", 
+     ylab = "S(n)", xlab = "Subsample size", 
      main = "Smooth")
 
 for (i in c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")) {
   
   plotdata <- ssfiles[[as.character(i)]]
   logN <- plotdata$simil_struct_Ns$smooth$vect_N_smooth
-  fitdata <- plotdata$simil_struct_Ns$smooth$fun_smooth_norm
+  fitdata <- plotdata$simil_struct_Ns$smooth$Sn
   
   lines(logN, fitdata, type = 'l', col = cols[as.character(i)], lwd=1.5)
 
@@ -210,14 +221,17 @@ legend("topright", c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms"), col = cols, lty = 
 
 ```
 
-# Probability of effect
+# Similar effect probability
 
 ```{r}
 # Load similarity structures
 datadir <- system.file("extdata", package = "similaritystructure")
 datalist <- list.files(datadir, pattern = "example_05", full.names = T)
-ssfiles <- lapply(datalist, function(x) readRDS(x))
-names(ssfiles) <- c("Ws_Wns", "Ms_Mns", "Wns_Mns", "Ws_Ms")
+ssfiles <- lapply(datalist, function(x) upgrade_ss(readRDS(x)))
+file_labels <- c("example_05_Female.RData" = "Ws_Wns", "example_05_Male.RData" = "Ms_Mns",
+                "example_05_no_smokers.RData" = "Wns_Mns", "example_05_yes_smokers.RData" = "Ws_Ms")
+names(ssfiles) <- unname(file_labels[basename(datalist)])
+stopifnot(!anyNA(names(ssfiles)))
 
 pares <- combn(seq_along(ssfiles), 2)
 

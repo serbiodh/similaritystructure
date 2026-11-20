@@ -4,76 +4,110 @@ output: github_document
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.path = "man/figures/README-",
-  out.width = "100%"
-)
-```
-
 # similaritystructure
 
-<!-- badges: start -->
-<!-- badges: end -->
-
-`similaritystructure` estimates similarity structure between two samples using repeated subsampling, statistical testing, smoothing and parametric fitting.
-
+Estimate the similarity structure (SS) and similarity size of two samples
+using repeated subsampling, hypothesis testing, smoothing and parametric
+fitting. Compare the sizes of effects through the similar effect probability
+(pS).
 
 ## Installation
 
-You can install the development version of similaritystructure like so:
+```r
+remotes::install_github("serbiodh/similaritystructure")
+```
+
+## Calculate and extract the similarity structure
 
 ```r
-devtools::install_github("usuario/similaritystructure")
-```
-
-## Example
-
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
 library(similaritystructure)
 
-seed <- 12345
-set.seed(seed)
-n1 <- rnorm(20000, 0, 1)
-n2 <- n1 + 0.8
+set.seed(12345)
+A <- rnorm(1000)
+B <- rnorm(1000, 0.5)
+C <- rnorm(1000, 0.9)
 
-res <- similarity_structure(
-  n1 = n1,
-  n2 = n2,
-  N_init = 2,
-  N_fin = round((80/0.8^2)),
-  num_N = 60,
-  num_repet = 300,
-  test = "t-test",
-  alpha = 0.05,
-  seed <- seed,
-  plotting = TRUE
-)
+AB <- similarity_structure(A, B, N_fin = 300,
+                           test = "t-test", seed = 12345,
+                           plotting = FALSE)
+AC <- similarity_structure(A, C, N_fin = 300,
+                           test = "t-test", seed = 12346,
+                           plotting = FALSE)
 
+# Empirical scaled non-rejection curve
+AB$scaled_bn
+
+# Similarity structure and similarity size: smoothing
+AB$simil_struct_Ns$smooth$Sn
+AB$simil_struct_Ns$smooth$Ns_smooth
+
+plot(AB$simil_struct_Ns$smooth$vect_N_smooth,
+     AB$simil_struct_Ns$smooth$Sn,
+     type = "l", xlab = "Subsample size", ylab = "S(n)")
+
+# Similarity structure and similarity size: parametric fitting
+if (!is.null(AB$simil_struct_Ns$fitting)) {
+  AB$simil_struct_Ns$fitting$Sn
+  AB$simil_struct_Ns$fitting$Ns_fitting
+  plot(AB$simil_struct_Ns$fitting$vect_N_fit,
+       AB$simil_struct_Ns$fitting$Sn,
+       type = "l", xlab = "Subsample size", ylab = "S(n)")
+}
 ```
+
+The empirical non-rejection curve is scaled by its first value before
+smoothing and fitting. It is not the similarity structure itself.
+The smoothed SS is normalized over the finite interval; the fitted SS
+is normalized over the infinite support starting at N_init. The returned
+fitted vector only covers a finite display range and need not sum to one.
+Choose N_fin to cover the decay of the empirical curve; inspect the fit
+before interpreting its extrapolated tail.
+
+## Compare effect sizes using pS
+
+```r
+# Smoothing
+prob_effect(smooth_A = AB$simil_struct_Ns$smooth,
+            smooth_B = AC$simil_struct_Ns$smooth)
+
+# Fitting, or both methods when the fits are available
+if (!is.null(AB$simil_struct_Ns$fitting) &&
+    !is.null(AC$simil_struct_Ns$fitting)) {
+  prob_effect(fitting_A = AB$simil_struct_Ns$fitting,
+              fitting_B = AC$simil_struct_Ns$fitting)
+
+  prob_effect(fitting_A = AB$simil_struct_Ns$fitting,
+              fitting_B = AC$simil_struct_Ns$fitting,
+              smooth_A = AB$simil_struct_Ns$smooth,
+              smooth_B = AC$simil_struct_Ns$smooth)
+}
+```
+
+pS is the minimum of the two cross-tail probabilities evaluated at the
+similarity size of the other comparison. It is not a hypothesis-test
+p-value; a threshold such as 0.05 is a user-defined decision criterion.
+Compare structures computed with the same test, significance level and
+compatible sample-size supports.
+
+For more information, run `?similarity_structure` and `?prob_effect`.
 
 ## Example files
 
-The package includes example data and reproducible R Markdown scripts.
+The package includes cached results and reproducible R Markdown scripts.
+Cached results were generated with earlier package versions. The examples
+migrate field names on loading; recompute the similarity structures to
+use the current subsample-size grid.
 
 ```r
 system.file("extdata", package = "similaritystructure")
 system.file("examples", package = "similaritystructure")
-```
 
-For example, to open the t-test example:
-
-```r
-file <- system.file(
-  "examples",
-  "example_01_ttest.Rmd",
-  package = "similaritystructure"
-)
-
+file <- system.file("examples", "example_01_mean.Rmd",
+                    package = "similaritystructure")
 file.edit(file)
 ```
 
+The examples may require additional packages (tictoc, data.table, dplyr,
+tidyr, pbapply, ggplot2, stringr, patchwork, viridis, R.matlab, vegan,
+sn and fasano.franceschini.test). Install the relevant packages before
+running the examples.

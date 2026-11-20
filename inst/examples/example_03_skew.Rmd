@@ -20,6 +20,8 @@ Sys.setlocale("LC_TIME", "C")
 
 # Libraries and functions
 
+Cached results were generated with earlier versions of the package. Field names are migrated when loaded; pS is calculated with the current definition. Recompute the similarity structures to obtain results using the current subsample-size grid.
+
 ```{r}
 library(tictoc)
 library(data.table)
@@ -33,6 +35,7 @@ library(viridis)
 
 # Similarity structure
 library(similaritystructure)
+source(system.file("examples", "upgrade_cached_results.R", package = "similaritystructure"))
 
 ```
 
@@ -58,19 +61,19 @@ num_repet <- 300  # Number of tests per subsample size
 # Generate random samples with different n to optimize comp times:
 seed <- 12345
 set.seed(seed)
-Sample_1_60000 = rskew_fixed(60000, 0, mu_target = 0, var_target = 1)
-Sample_1_40000 = rskew_fixed(40000, 0, mu_target = 0, var_target = 1)
-Sample_1_20000 = rskew_fixed(20000, 0, mu_target = 0, var_target = 1)
+Sample_1_60000 = similaritystructure:::rskew_fixed(60000, 0, mu_target = 0, var_target = 1)
+Sample_1_40000 = similaritystructure:::rskew_fixed(40000, 0, mu_target = 0, var_target = 1)
+Sample_1_20000 = similaritystructure:::rskew_fixed(20000, 0, mu_target = 0, var_target = 1)
 
 # Computation of the similarity structure:
 # In this case, it is not possible to fabricate different distributions
 # with distinct skewness from the same initial distribution, as we did in the
 # case of the mean, where the same distribution with the shifted mean works
 # as a new distribution with different mean. For that reason, for each value of skewness,
-# we generate 100 Sample_2, obtain their 100 non-normalized p(N | >alpha), we average 
-# these to get the final non-normalized p(N | >alpha). This final non-normalized p(N | >alpha) 
+# we generate 100 Sample_2, obtain their 100 non-normalized beta(n), we average 
+# these to get the final non-normalized beta(n). This final non-normalized beta(n) 
 # is fitted, leading to the final similarity structures. From this we calculate
-# the N_S and the effect comparison.
+# the similarity size and the effect comparison.
 
 size_Sample_2 = c(60000, 60000, 60000, 60000, 
                   40000, 
@@ -87,7 +90,7 @@ n1_vect <- list(Sample_1_60000, Sample_1_60000, Sample_1_60000, Sample_1_60000,
 tic()
 ssmany <- pblapply(1:length(vect_skw), 
                    function(x) similarity_structure(n1_vect[[x]], 
-                                                    rskew_fixed(size_Sample_2[x], vect_skw[x], mu_target = 0, var_target = 1), 
+                                                    similaritystructure:::rskew_fixed(size_Sample_2[x], vect_skw[x], mu_target = 0, var_target = 1), 
                                                     N_init, 
                                                     N_fin = N_fin[x], 
                                                     num_N, num_repet, 
@@ -111,7 +114,7 @@ names(ssmany) <- vect_skw
 ```{r, fig.height=20, fig.width=30}
 # Load similarity structures
 filename <- system.file("extdata", "example_03_ks.RData", package = "similaritystructure")
-datafile <- readRDS(filename)
+datafile <- lapply(readRDS(filename), upgrade_ss)
 vect_skw <- c(seq(0.2, 0.8, by = 0.2), seq(1, 1.8, by = 0.2), seq(2, 3.8, by = 0.3), seq(4, 4.8, by = 0.4), seq(5, 10, by = 1))
 
 # Plot
@@ -120,12 +123,12 @@ par(mfrow = c(5, 5), mar = c(4, 4, 2, 0.3), bg = "gray", cex = 1.2)
 for (i in vect_skw) {
   
   plotdata <- datafile[[as.character(i)]]
-  propsig <- plotdata$empiric_PNalpha
+  propsig <- plotdata$scaled_bn
   smoothdata <- plotdata$simil_struct_Ns$smooth
   fitdata <- plotdata$simil_struct_Ns$fitting
   
   plot(propsig$N, propsig$scaled, type = 'l', col = "black",lwd=1.5, 
-       ylab = "Scaled g(n)", xlab = "Subsample size",
+       ylab = "Scaled beta(n)", xlab = "Subsample size",
        main = paste0("Skew shift: ", i))
   lines(fitdata$vect_N_fit, fitdata$Scale*fitdata$fun_fit, type = 'l', col = "darkred",lwd=1.5)
   lines(smoothdata$vect_N_smooth, smoothdata$fun_smooth, col = "darkgreen")
@@ -138,12 +141,12 @@ for (i in vect_skw) {
 
 ```
 
-# Plot all p(n)
+# Plot all S(n)
 
 ```{r, fig.width=10, fig.height=5}
 # Load similarity structures
 filename <- system.file("extdata", "example_03_ks.RData", package = "similaritystructure")
-datafile <- readRDS(filename)
+datafile <- lapply(readRDS(filename), upgrade_ss)
 vect_skw <- c(seq(0.2, 0.8, by = 0.2), seq(1, 1.8, by = 0.2), seq(2, 3.8, by = 0.3), seq(4, 4.8, by = 0.4), seq(5, 10, by = 1))
 
 jet <- function(n) {
@@ -168,7 +171,7 @@ for (i in rev(vect_skw)) {
   
   plotdata <- datafile[[as.character(i)]]
   logN <- plotdata$simil_struct_Ns$fitting$vect_N_fit %>% log10()
-  fitdata <- plotdata$simil_struct_Ns$fitting$P_N_alpha
+  fitdata <- plotdata$simil_struct_Ns$fitting$Sn
   
   lines(logN, fitdata, type = 'l', col = cols[as.character(i)], lwd=1.5)
 
@@ -184,7 +187,7 @@ for (i in rev(vect_skw)) {
   
   plotdata <- datafile[[as.character(i)]]
   logN <- plotdata$simil_struct_Ns$smooth$vect_N_smooth %>% log10()
-  fitdata <- plotdata$simil_struct_Ns$smooth$fun_smooth_norm
+  fitdata <- plotdata$simil_struct_Ns$smooth$Sn
   
   lines(logN, fitdata, type = 'l', col = cols[as.character(i)], lwd=1.5)
 
@@ -194,12 +197,12 @@ dev.off()
 
 ```
 
-# Probability of effect
+# Similar effect probability
 
 ```{r}
 # Load similarity structures
 filename <- system.file("extdata", "example_03_ks.RData", package = "similaritystructure")
-datafile <- readRDS(filename)
+datafile <- lapply(readRDS(filename), upgrade_ss)
 
 pares <- combn(seq_along(datafile), 2)
 

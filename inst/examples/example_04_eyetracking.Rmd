@@ -20,6 +20,8 @@ Sys.setlocale("LC_TIME", "C")
 
 # Libraries and functions
 
+Cached results were generated with earlier versions of the package. Field names are migrated when loaded; pS is calculated with the current definition. Recompute the similarity structures to obtain results using the current subsample-size grid.
+
 ```{r}
 library(tictoc)
 library(data.table)
@@ -34,14 +36,15 @@ library(viridis)
 
 # Similarity structure
 library(similaritystructure)
+source(system.file("examples", "upgrade_cached_results.R", package = "similaritystructure"))
 
 ```
 
 # Similarity structure
 
-DON'T RUN! Run only to replicate the procedure
+Run this block only to recompute the analysis (requires the fasano.franceschini.test package).
 
-```{r}
+```{r, eval = FALSE}
 # Read the data
 datadir <- system.file("extdata", package = "similaritystructure")
 matlist <- list.files(datadir, pattern = "Fixation", full.names = T)
@@ -75,7 +78,7 @@ ss <- similarity_structure(matfiles[[compar$n1[comparison]]]$Sample,
                            num_N, 
                            num_repet,
                            replace = TRUE,
-                           test = fasano.franceschini.test,
+                           test = fasano.franceschini.test::fasano.franceschini.test,
                            test_args = list(verbose =  FALSE, method = 'r',
                                             nPermute = 50,
                                             threads = 1L),
@@ -96,8 +99,11 @@ toc()
 # Load similarity structures
 datadir <- system.file("extdata", package = "similaritystructure")
 datalist <- list.files(datadir, pattern = "example_04", full.names = T)
-ssfiles <- lapply(datalist, function(x) readRDS(x))
-names(ssfiles) <- c("Mf_Mb", "Wb_Mb", "Wf_Mf", "Wf_Wb")
+ssfiles <- lapply(datalist, function(x) upgrade_ss(readRDS(x)))
+file_labels <- c("example_04_Mf_Mb.RData" = "Mf_Mb", "example_04_Wb_Mb.RData" = "Wb_Mb",
+                "example_04_Wf_Mf.RData" = "Wf_Mf", "example_04_Wf_Wb.RData" = "Wf_Wb")
+names(ssfiles) <- unname(file_labels[basename(datalist)])
+stopifnot(!anyNA(names(ssfiles)))
 
 # Plot
 par(mfrow = c(1,4), mar = c(4, 4, 2, 0.3), bg = "gray", cex = 1.2)
@@ -105,12 +111,12 @@ par(mfrow = c(1,4), mar = c(4, 4, 2, 0.3), bg = "gray", cex = 1.2)
 for (i in c("Mf_Mb", "Wb_Mb", "Wf_Mf", "Wf_Wb")) {
   
   plotdata <- ssfiles[[as.character(i)]]
-  propsig <- plotdata$empiric_PNalpha
+  propsig <- plotdata$scaled_bn
   smoothdata <- plotdata$simil_struct_Ns$smooth
   fitdata <- plotdata$simil_struct_Ns$fitting
   
   plot(propsig$N, propsig$scaled, type = 'l', col = "black",lwd=1.5, 
-       ylab = "Scaled g(n)", xlab = "Subsample size",
+       ylab = "Scaled beta(n)", xlab = "Subsample size",
        main = i)
   lines(fitdata$vect_N_fit, fitdata$Scale*fitdata$fun_fit, type = 'l', col = "darkred",lwd=1.5)
   lines(smoothdata$vect_N_smooth, smoothdata$fun_smooth, col = "darkgreen")
@@ -123,14 +129,17 @@ for (i in c("Mf_Mb", "Wb_Mb", "Wf_Mf", "Wf_Wb")) {
 
 ```
 
-# Plot all p(n)
+# Plot all S(n)
 
 ```{r, fig.width=10, fig.height=5}
 # Load similarity structures
 datadir <- system.file("extdata", package = "similaritystructure")
 datalist <- list.files(datadir, pattern = "example_04", full.names = T)
-ssfiles <- lapply(datalist, function(x) readRDS(x))
-names(ssfiles) <- c("Mf_Mb", "Wb_Mb", "Wf_Mf", "Wf_Wb")
+ssfiles <- lapply(datalist, function(x) upgrade_ss(readRDS(x)))
+file_labels <- c("example_04_Mf_Mb.RData" = "Mf_Mb", "example_04_Wb_Mb.RData" = "Wb_Mb",
+                "example_04_Wf_Mf.RData" = "Wf_Mf", "example_04_Wf_Wb.RData" = "Wf_Wb")
+names(ssfiles) <- unname(file_labels[basename(datalist)])
+stopifnot(!anyNA(names(ssfiles)))
 
 jet <- function(n) {
   colorRampPalette(c(
@@ -156,7 +165,7 @@ for (i in c("Mf_Mb", "Wb_Mb", "Wf_Mf", "Wf_Wb")) {
   
   plotdata <- ssfiles[[as.character(i)]]
   logN <- plotdata$simil_struct_Ns$fitting$vect_N_fit %>% log10()
-  fitdata <- plotdata$simil_struct_Ns$fitting$P_N_alpha
+  fitdata <- plotdata$simil_struct_Ns$fitting$Sn
   
   lines(logN, fitdata, type = 'l', col = cols[as.character(i)], lwd=1.5)
 
@@ -175,7 +184,7 @@ for (i in c("Mf_Mb", "Wb_Mb", "Wf_Mf", "Wf_Wb")) {
   
   plotdata <- ssfiles[[as.character(i)]]
   logN <- plotdata$simil_struct_Ns$smooth$vect_N_smooth %>% log10()
-  fitdata <- plotdata$simil_struct_Ns$smooth$fun_smooth_norm
+  fitdata <- plotdata$simil_struct_Ns$smooth$Sn
   
   lines(logN, fitdata, type = 'l', col = cols[as.character(i)], lwd=1.5)
 
@@ -185,14 +194,17 @@ legend("topright", c("Mf_Mb", "Wb_Mb", "Wf_Mf", "Wf_Wb"), col = cols, lty = "sol
 
 ```
 
-# Probability of effect
+# Similar effect probability
 
 ```{r}
 # Load similarity structures
 datadir <- system.file("extdata", package = "similaritystructure")
 datalist <- list.files(datadir, pattern = "example_04", full.names = T)
-ssfiles <- lapply(datalist, function(x) readRDS(x))
-names(ssfiles) <- c("Mf_Mb", "Wb_Mb", "Wf_Mf", "Wf_Wb")
+ssfiles <- lapply(datalist, function(x) upgrade_ss(readRDS(x)))
+file_labels <- c("example_04_Mf_Mb.RData" = "Mf_Mb", "example_04_Wb_Mb.RData" = "Wb_Mb",
+                "example_04_Wf_Mf.RData" = "Wf_Mf", "example_04_Wf_Wb.RData" = "Wf_Wb")
+names(ssfiles) <- unname(file_labels[basename(datalist)])
+stopifnot(!anyNA(names(ssfiles)))
 
 pares <- combn(seq_along(ssfiles), 2)
 
