@@ -100,7 +100,7 @@ The main-text examples are:
 
 The BMI example includes 180 original non-rejection counts in `inst/extdata/bmi_counts.csv`.
 It refits the binomial GAM and parametric model without repeating subsampling;
-set `calculate_ss: true` in the Rmd to run all 54,000 tests and save the three RDS files.
+set `calculate_ss: true` in the Rmd to run missing comparisons and save their RDS files. Delete any old local RDS files to force a rerun.
 Copy the Rmd to a writable working folder before knitting so NHANES XPT files
 can be downloaded into `data/` and results saved into `results/`.
 
