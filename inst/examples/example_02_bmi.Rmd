@@ -13,7 +13,7 @@ three smoking groups: never smokers (N), former smokers (F) and current smokers 
 
 By default, we use the original non-rejection counts saved from our R analysis.
 This avoids repeating 54,000 subsampling tests. Set `calculate_ss: true` to
-run all tests again; the results will be saved as RDS files.
+run any comparisons that have not yet been saved as RDS files.
 
 # 1. Libraries and data
 
@@ -137,8 +137,8 @@ not, however, create new independent participants.
 
 If calculate_ss is FALSE, the original empirical counts are loaded from
 bmi_counts.csv and fitted again with the current package. This is fast and
-uses the new binomial GAM. If calculate_ss is TRUE, the full simulation is
-performed and each result is saved as an RDS file.
+uses the new binomial GAM. If calculate_ss is TRUE, any missing RDS results
+are calculated and saved. Delete a saved RDS file to repeat that comparison.
 
 ```{r similarity-structures}
 N_fin <- c("N-C" = 4500L, "F-N" = 1500L, "F-C" = 800L)
@@ -312,6 +312,6 @@ participants with missing BMI only when calculating the statistics.
 
 The compact cached counts were extracted from the original RDS results
 calculated in R with the settings above. To rerun every subsampling test,
-change calculate_ss to TRUE in the header. The saved RDS files will then be
-used for later renders. The original MATLAB results are included only as
+change calculate_ss to TRUE in the header and delete the corresponding local
+RDS files, if they already exist. Saved results are reused in later renders. The original MATLAB results are included only as
 historical numerical reference and are not needed to run this example.
