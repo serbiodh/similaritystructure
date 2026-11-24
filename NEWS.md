@@ -17,3 +17,5 @@ Historical cached analyses should be preserved and new article results
 recomputed and checked before publication.
 
 * Remove unused Imports and the vignette builder declaration (example Rmd files are not package vignettes); allow roxygen2 to regenerate prob_effect help.
+
+* Replace the provisional NHANES BMI example with a verified, fully commented R Markdown analysis. Store original empirical non-rejection counts for fast refitting without MATLAB or repeated subsampling.

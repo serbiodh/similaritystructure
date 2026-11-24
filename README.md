@@ -95,8 +95,14 @@ For more information, run `?similarity_structure` and `?prob_effect`.
 The main-text examples are:
 
 - `example_01_mean.Rmd`: normal samples with different means (Figure 3).
-- `example_02_bmi.Rmd`: NHANES BMI and smoking status (Figure 4; reconstruction pending verification against the original analysis).
+- `example_02_bmi.Rmd`: NHANES BMI and smoking status (Figure 4; original parameters and verified cohort).
 - `example_03_betadivers.Rmd`: gut microbiome composition (Figure 5).
+
+The BMI example includes 180 original non-rejection counts in `inst/extdata/bmi_counts.csv`.
+It refits the binomial GAM and parametric model without repeating subsampling;
+set `calculate_ss: true` in the Rmd to run all 54,000 tests and save the three RDS files.
+Copy the Rmd to a writable working folder before knitting so NHANES XPT files
+can be downloaded into `data/` and results saved into `results/`.
 
 Historical cached results for the normal and microbiome examples retain
 original Monte Carlo counts. They are updated to the binomial GAM on loading,
