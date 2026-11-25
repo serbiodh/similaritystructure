@@ -2,7 +2,7 @@
 
 # similaritystructure
 
-The **similaritystructure** package estimates the similarity structure (SS) from repeated subsampling and hypothesis tests. It returns a normalized distribution over subsample sizes, the similarity size (`nS`), and the similar effect probability (`pS`) for comparisons between effects.
+The **similaritystructure** package estimates the similarity structure (Sn) from repeated subsampling and hypothesis tests. It returns a normalized distribution over subsample sizes, the similarity size (`nS`), and the similar effect probability (`pS`) for comparisons between effects.
 
 Two approximations are available: parametric fitting and binomial GAM smoothing. The first is normalized over an infinite range; the second over the evaluated range of sample sizes.
 
