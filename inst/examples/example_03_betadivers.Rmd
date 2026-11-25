@@ -30,21 +30,35 @@ metafile <- system.file("extdata", "meta_full.csv",
 betadist <- read.csv(distfile, check.names = FALSE)
 betameta <- read.csv(metafile)
 
-# Sample IDs have dots in the distance matrix but hyphens in some metadata IDs.
-# Correct them BEFORE finding the common samples.
-betameta$sample_id <- stringr::str_replace_all(betameta$sample_id, "-", ".")
+# Some metadata IDs use hyphens where the distance matrix uses dots.
+# Keep IDs that already match; change only those with a matching dot version.
+dist_ids <- colnames(betadist)
+missing <- !betameta$sample_id %in% dist_ids
+revised <- gsub("-", ".", betameta$sample_id[missing], fixed = TRUE)
+matches <- revised %in% dist_ids
+betameta$sample_id[which(missing)[matches]] <- revised[matches]
 
-stopifnot(!anyDuplicated(colnames(betadist)))
+stopifnot(!anyDuplicated(dist_ids))
 stopifnot(!anyDuplicated(betameta$sample_id))
 
-rownames(betadist) <- colnames(betadist)
+rownames(betadist) <- dist_ids
 rownames(betameta) <- betameta$sample_id
 
 common_ids <- intersect(rownames(betadist), rownames(betameta))
+
+cat("Samples in distance matrix:", ncol(betadist), "\n")
+cat("Samples in metadata:", nrow(betameta), "\n")
+cat("Matching sample IDs:", length(common_ids), "\n")
+
+# If any ID is missing, show it instead of silently discarding samples.
+if (length(common_ids) != 1011L) {
+  cat("Unmatched metadata IDs (first 20):\n")
+  print(head(setdiff(betameta$sample_id, dist_ids), 20))
+  stop("Expected 1011 matching samples. Check the two input files.")
+}
+
 betadist <- as.matrix(betadist[common_ids, common_ids, drop = FALSE])
 betameta <- betameta[common_ids, , drop = FALSE]
-
-stopifnot(length(common_ids) == 1011L)
 stopifnot(identical(rownames(betadist), rownames(betameta)))
 
 betameta$gender <- factor(betameta$gender, levels = c("Male", "Female"))
