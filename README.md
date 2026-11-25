@@ -41,7 +41,7 @@ AC <- similarity_structure(
 )
 ```
 
-The empirical non-rejection curve is in `scaled_bn`. The normalized SS and similarity size are provided by `smooth` and, when a valid parametric fit is found, by `fitting`.
+The empirical non-rejection curve is in `scaled_bn`. The normalized Sn and similarity size are provided by `smooth` and, when a valid parametric fit is found, by `fitting`.
 
 ```r
 AB$scaled_bn
