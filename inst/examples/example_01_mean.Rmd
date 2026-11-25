@@ -55,7 +55,7 @@ A single comparison can be estimated with `similarity_structure()`. For example,
 res <- similarity_structure(
   x, x + 0.4, N_init = 2, N_fin = round(80 / 0.4^2),
   num_N = 60, num_repet = 300, replace = TRUE,
-  test = "ks-test", alpha = 0.05, seed = 12345,
+  test = params$test, alpha = 0.05, seed = 12345,
   plotting = FALSE
 )
 ```
