@@ -27,6 +27,7 @@ Imports:
     data.table,
     future,
     future.apply,
+    parallel,
     progressr,
     mgcv,
     minpack.lm,
