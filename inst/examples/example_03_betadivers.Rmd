@@ -192,6 +192,7 @@ for (method in c("fitting", "smooth")) {
 
   for (name in comparisons) {
     result <- ss[[name]]$simil_struct_Ns[[method]]
+    if (is.null(result)) next
     n <- if (method == "fitting") result$vect_N_fit else result$vect_N_smooth
     lines(n, result$Sn, col = colors[name], lwd = 2)
   }
@@ -217,8 +218,10 @@ for (i in 1:3) {
     A <- ss[[comparisons[i]]]$simil_struct_Ns
     B <- ss[[comparisons[j]]]$simil_struct_Ns
 
-    ps_fit[i, j] <- prob_effect(fitting_A = A$fitting,
-                               fitting_B = B$fitting)
+    if (!is.null(A$fitting) && !is.null(B$fitting)) {
+      ps_fit[i, j] <- prob_effect(fitting_A = A$fitting,
+                                 fitting_B = B$fitting)
+    }
     ps_smooth[i, j] <- prob_effect(smooth_A = A$smooth,
                                   smooth_B = B$smooth)
 
