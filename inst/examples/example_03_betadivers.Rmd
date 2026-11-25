@@ -1,17 +1,20 @@
 ---
 title: "Example 03 - Gut microbiome beta diversity"
-author: "Sergio Diez-Hermano"
 output:
   html_document:
     toc: true
     toc_depth: 2
+params:
+  calculate_ss: false
 ---
 
-This example compares gut microbiome beta diversity between smokers and non-smokers, separately for women and men, and between women and men, separately for smokers and non-smokers.
+# 1. Introduction
 
-The original PERMANOVA subsampling results are included as two small CSV files. We keep the original non-rejection counts and parametric fitting, and update only the smoothing to the binomial GAM. **Knitting this file does not repeat the expensive subsampling tests.**
+This example applies the similarity structure (SS) to multivariate gut microbiome data. We use PERMANOVA to compare beta diversity between smokers and non-smokers, separately for women and men, and between women and men, separately for smokers and non-smokers.
 
-# 1. Read and check the data
+The data are from curatedMetagenomicData. The default analysis loads estimates included in the package, avoiding the expensive repeated PERMANOVA tests. Set `calculate_ss: true` to run the complete analysis again.
+
+# 2. Read and prepare the data
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
@@ -30,8 +33,8 @@ metafile <- system.file("extdata", "meta_full.csv",
 betadist <- read.csv(distfile, check.names = FALSE)
 betameta <- read.csv(metafile)
 
-# Some metadata IDs use hyphens where the distance matrix uses dots.
-# Keep IDs that already match; change only those with a matching dot version.
+# Some sample IDs contain dots in the distance matrix and hyphens in metadata.
+# Change an ID only when its dot version is present in the distance matrix.
 dist_ids <- colnames(betadist)
 missing <- !betameta$sample_id %in% dist_ids
 revised <- gsub("-", ".", betameta$sample_id[missing], fixed = TRUE)
@@ -45,17 +48,7 @@ rownames(betadist) <- dist_ids
 rownames(betameta) <- betameta$sample_id
 
 common_ids <- intersect(rownames(betadist), rownames(betameta))
-
-cat("Samples in distance matrix:", ncol(betadist), "\n")
-cat("Samples in metadata:", nrow(betameta), "\n")
-cat("Matching sample IDs:", length(common_ids), "\n")
-
-# If any ID is missing, show it instead of silently discarding samples.
-if (length(common_ids) != 1011L) {
-  cat("Unmatched metadata IDs (first 20):\n")
-  print(head(setdiff(betameta$sample_id, dist_ids), 20))
-  stop("Expected 1011 matching samples. Check the two input files.")
-}
+stopifnot(length(common_ids) == 1011L)
 
 betadist <- as.matrix(betadist[common_ids, common_ids, drop = FALSE])
 betameta <- betameta[common_ids, , drop = FALSE]
@@ -64,135 +57,156 @@ stopifnot(identical(rownames(betadist), rownames(betameta)))
 betameta$gender <- factor(betameta$gender, levels = c("Male", "Female"))
 betameta$smoker <- factor(betameta$smoker, levels = c("no", "yes"))
 
-# Check the four group sizes (smokers / non-smokers by sex).
+cat("Samples:", nrow(betameta), "\n")
+cat("Studies:", length(unique(betameta$study_name)), "\n")
 table(betameta$gender, betameta$smoker)
 ```
 
-# 2. Similarity structures
-
 The four comparisons are:
 
-- **Female:** female smokers versus female non-smokers.
-- **Male:** male smokers versus male non-smokers.
-- **no:** female non-smokers versus male non-smokers.
-- **yes:** female smokers versus male smokers.
+- **Female:** smokers versus non-smokers among women.
+- **Male:** smokers versus non-smokers among men.
+- **no:** women versus men among non-smokers.
+- **yes:** women versus men among smokers.
 
-The original settings were alpha = 0.05, 60 subsample sizes, 300 repetitions, seed = 123456, PERMANOVA with 999 permutations, and **sampling with replacement**. The four values of N_fin were 70, 200, 100 and 100, respectively. With replacement, the evaluated subsample sizes may exceed the number of observed individuals.
+These data include 1,011 samples from 10 studies. Some subjects have repeated samples. The following analysis illustrates the application of SS to microbiome distances; it does not adjust for study or repeated measurements.
 
-The saved empirical curves contain 59 or 60 distinct sizes, due to rounding in the original grid. A new run of the current package may use a slightly different grid and produce different Monte Carlo results.
+# 3. Similarity structures
 
-```{r cached-results}
+The test is PERMANOVA with 999 permutations. For each comparison, we evaluate 60 subsample sizes and 300 repetitions at alpha = 0.05, with seed = 123456.
+
+The subsampling is **with replacement**, so the evaluated sample size can exceed the number of observed participants in a group.
+
+```{r similarity-structures}
 comparisons <- c("Female", "Male", "no", "yes")
 N_fin <- c(Female = 70L, Male = 200L, no = 100L, yes = 100L)
+num_N <- 60L
+num_repet <- 300L
+alpha <- 0.05
+seed <- 123456L
 
-countfile <- system.file("extdata", "betadivers_counts.csv",
-                         package = "similaritystructure")
-fitfile <- system.file("extdata", "betadivers_fitting.csv",
-                       package = "similaritystructure")
+source(system.file("scripts", "example_cache.R",
+                   package = "similaritystructure"))
 
-counts <- read.csv(countfile)
-fits <- read.csv(fitfile)
-ss <- list()
+if (isTRUE(params$calculate_ss)) {
 
-for (name in comparisons) {
-  empirical <- counts[counts$comparison == name, c("N", "num_nosig")]
-  empirical$scaled <- empirical$num_nosig / empirical$num_nosig[1]
-  attr(empirical, "num_repet") <- 300L
+  ss <- list()
+  dir.create("results", showWarnings = FALSE)
 
-  # Fit the current binomial GAM to the original 300-test counts.
-  smooth <- similaritystructure:::smooth_binomial(
-    N_init = 2, N_fin = N_fin[name],
-    propsig = empirical, num_repet = 300
-  )
+  for (name in comparisons) {
 
-  # Reconstruct the original parametric fit from its saved coefficients.
-  fitrow <- fits[fits$comparison == name, ]
-  raw <- as.numeric(unlist(fitrow[paste0("raw_p", 1:5)]))
-  coef <- as.numeric(unlist(fitrow[paste0("ss_p", 1:5)]))
-  n <- 2:fitrow$N_fit_max
+    if (name %in% c("Female", "Male")) {
+      ind1 <- which(betameta$gender == name & betameta$smoker == "yes")
+      ind2 <- which(betameta$gender == name & betameta$smoker == "no")
+    } else {
+      ind1 <- which(betameta$gender == "Female" & betameta$smoker == name)
+      ind2 <- which(betameta$gender == "Male" & betameta$smoker == name)
+    }
 
-  fitted <- list(
-    vect_N_fit = n,
-    fun_fit = (raw[1] + raw[2]*n + raw[3]*n^2 + raw[5]*n^3)*exp(-raw[4]*n),
-    Sn = (coef[1] + coef[2]*n + coef[3]*n^2 + coef[5]*n^3)*exp(-coef[4]*n),
-    param_Sn = coef,
-    Ns_fitting = fitrow$Ns_fitting,
-    Gof_fit = fitrow$Gof_fit
-  )
+    # The test function takes two sets of rows from the distance matrix.
+    ss[[name]] <- similarity_structure(
+      betadist[ind1, , drop = FALSE],
+      betadist[ind2, , drop = FALSE],
+      N_init = 2L, N_fin = N_fin[[name]],
+      num_N = num_N, num_repet = num_repet,
+      replace = TRUE, test = similaritystructure::adonis_ss,
+      test_args = list(subset_choice = name, permutations = 999),
+      alpha = alpha, seed = seed, plotting = FALSE
+    )
 
-  ss[[name]] <- list(scaled_bn = empirical,
-                     simil_struct_Ns = list(smooth = smooth, fitting = fitted))
+    saveRDS(ss[[name]], file.path("results",
+                                paste0("betadivers_", name, ".rds")))
+  }
+
+} else {
+
+  # Use the estimates saved with the package.
+  ss <- read_example_cache("microbiome")
 }
 ```
 
-## Similarity sizes
+# 4. Similarity sizes
+
+The normalized SS can be estimated using either parametric fitting or a binomial GAM. The expected subsample size under each SS is the similarity size (`nS`).
 
 ```{r sizes}
 ns <- data.frame(Comparison = comparisons,
                  Fitting = NA_real_, Smoothing = NA_real_)
 
 for (i in seq_along(comparisons)) {
-  x <- ss[[comparisons[i]]]$simil_struct_Ns
-  ns$Fitting[i] <- x$fitting$Ns_fitting
-  ns$Smoothing[i] <- x$smooth$Ns_smooth
+  result <- ss[[comparisons[i]]]$simil_struct_Ns
+  if (!is.null(result$fitting))
+    ns$Fitting[i] <- result$fitting$Ns_fitting
+  ns$Smoothing[i] <- result$smooth$Ns_smooth
 }
 
 print(ns, row.names = FALSE, digits = 5)
 ```
 
-## Empirical curves, fitting and smoothing
+## Empirical curves and approximations
 
-Black: scaled empirical non-rejection curve. Red: original parametric fit. Green: updated binomial GAM.
+Black lines show the scaled empirical non-rejection probability, red lines the parametric fitting and green lines the binomial GAM. Vertical lines indicate the similarity sizes.
 
 ```{r curves, fig.width=12, fig.height=3.5}
-par(mfrow = c(1, 4), mar = c(4, 4, 2, 1))
+labels <- c(Female = "Women: smoking", Male = "Men: smoking",
+            no = "Non-smokers: sex", yes = "Smokers: sex")
+
+op <- par(mfrow = c(1, 4), mar = c(4, 4, 2.5, 1))
 
 for (name in comparisons) {
-  x <- ss[[name]]
-  emp <- x$scaled_bn
-  fit <- x$simil_struct_Ns$fitting
-  sm <- x$simil_struct_Ns$smooth
+  result <- ss[[name]]
+  empirical <- result$scaled_bn
+  fit <- result$simil_struct_Ns$fitting
+  smooth <- result$simil_struct_Ns$smooth
 
-  plot(emp$N, emp$scaled, type = "l", lwd = 1.5,
-       xlab = "Subsample size", ylab = "Scaled beta(n)", main = name)
-  lines(fit$vect_N_fit, fit$fun_fit, col = "firebrick", lwd = 1.5)
-  lines(sm$vect_N_smooth, sm$fun_smooth, col = "darkgreen", lwd = 1.5)
-  abline(v = fit$Ns_fitting, col = "firebrick", lty = 2)
-  abline(v = sm$Ns_smooth, col = "darkgreen", lty = 2)
+  plot(empirical$N, empirical$scaled, type = "l", lwd = 1.5,
+       xlab = "Subsample size", ylab = "Scaled beta(n)",
+       main = labels[[name]])
+  if (!is.null(fit)) {
+    lines(fit$vect_N_fit, fit$fun_fit, col = "firebrick", lwd = 1.5)
+    abline(v = fit$Ns_fitting, col = "firebrick", lty = 2)
+  }
+  lines(smooth$vect_N_smooth, smooth$fun_smooth,
+        col = "darkgreen", lwd = 1.5)
+  abline(v = smooth$Ns_smooth, col = "darkgreen", lty = 2)
 }
-par(mfrow = c(1, 1))
+
+par(op)
 ```
 
-# 3. Normalized similarity structures S(n)
+## Normalized similarity structures
 
 ```{r ss-curves, fig.width=10, fig.height=5}
 colors <- c(Female = "#CC6677", Male = "#4477AA",
             no = "#228833", yes = "#AA3377")
 
-par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
-max_y <- max(sapply(ss, function(x) max(x$simil_struct_Ns$fitting$Sn,
-                                    x$simil_struct_Ns$smooth$Sn)))
+op <- par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
+
+max_y <- max(sapply(ss, function(x)
+  max(x$simil_struct_Ns$fitting$Sn, x$simil_struct_Ns$smooth$Sn)))
 
 for (method in c("fitting", "smooth")) {
   plot(0, 0, type = "n", xlim = c(2, 200), ylim = c(0, max_y),
-       xlab = "Subsample size", ylab = "S(n)",
+       xlab = "Subsample size (n)", ylab = "S(n)",
        main = if (method == "fitting") "Parametric fitting" else "Binomial GAM")
 
   for (name in comparisons) {
-    x <- ss[[name]]$simil_struct_Ns[[method]]
-    n <- if (method == "fitting") x$vect_N_fit else x$vect_N_smooth
-    lines(n, x$Sn, col = colors[name], lwd = 2)
+    result <- ss[[name]]$simil_struct_Ns[[method]]
+    n <- if (method == "fitting") result$vect_N_fit else result$vect_N_smooth
+    lines(n, result$Sn, col = colors[name], lwd = 2)
   }
-  legend("topright", legend = comparisons, col = colors, lty = 1, bty = "n")
+  legend("topright", labels[comparisons], col = colors[comparisons],
+         lty = 1, bty = "n", cex = 0.7)
 }
-par(mfrow = c(1, 1))
+
+par(op)
 ```
 
-# 4. Similar effect probability (pS)
+# 5. Comparing the effects with pS
 
-We compare the four effects using the current prob_effect() function. The parametric fit is the primary comparison. The GAM is normalized on a finite interval, which can sometimes lead to a zero pS when the other similarity size lies outside its range. Such a zero is a truncation effect, not evidence of an exact population probability of zero.
+We compare the four effects using `prob_effect()`. The parametric fitting is used for the primary comparisons; the GAM results are also shown. The GAM is normalized over a finite range, so its `pS` can be zero when the other similarity size lies outside that range.
 
-pS is a descriptive probability, not a hypothesis-test p-value. A threshold such as 0.05 is a user-defined comparison criterion.
+The `pS` is a descriptive comparison probability, not a hypothesis-test p-value.
 
 ```{r ps}
 ps_fit <- ps_smooth <- matrix(NA_real_, 4, 4,
@@ -203,8 +217,11 @@ for (i in 1:3) {
     A <- ss[[comparisons[i]]]$simil_struct_Ns
     B <- ss[[comparisons[j]]]$simil_struct_Ns
 
-    ps_fit[i, j] <- prob_effect(fitting_A = A$fitting, fitting_B = B$fitting)
-    ps_smooth[i, j] <- prob_effect(smooth_A = A$smooth, smooth_B = B$smooth)
+    ps_fit[i, j] <- prob_effect(fitting_A = A$fitting,
+                               fitting_B = B$fitting)
+    ps_smooth[i, j] <- prob_effect(smooth_A = A$smooth,
+                                  smooth_B = B$smooth)
+
     ps_fit[j, i] <- ps_fit[i, j]
     ps_smooth[j, i] <- ps_smooth[i, j]
   }
@@ -212,24 +229,26 @@ for (i in 1:3) {
 
 cat("pS from parametric fitting:\n")
 print(ps_fit, digits = 5)
-cat("pS from binomial smoothing:\n")
+cat("pS from binomial GAM:\n")
 print(ps_smooth, digits = 5)
 ```
 
 ## pS matrices
 
-The diagonal is left blank because the figure compares different effects.
+The diagonal is left blank because we are comparing different effects.
 
-```{r ps-figure, fig.width=10, fig.height=4.5}
-plotdata <- rbind(
+```{r ps-figure, fig.width=11, fig.height=5}
+ps_plot <- rbind(
   data.frame(as.table(ps_fit), Method = "Fitting"),
   data.frame(as.table(ps_smooth), Method = "Binomial GAM")
 )
-names(plotdata)[1:3] <- c("A", "B", "pS")
-plotdata$A <- factor(plotdata$A, levels = comparisons)
-plotdata$B <- factor(plotdata$B, levels = rev(comparisons))
+names(ps_plot)[1:3] <- c("A", "B", "pS")
+ps_plot$A <- factor(ps_plot$A, levels = comparisons,
+                    labels = labels[comparisons])
+ps_plot$B <- factor(ps_plot$B, levels = rev(comparisons),
+                    labels = labels[rev(comparisons)])
 
-ggplot(plotdata, aes(x = A, y = B, fill = pS)) +
+ggplot(ps_plot, aes(x = A, y = B, fill = pS)) +
   geom_tile(color = "white") +
   geom_text(aes(label = ifelse(is.na(pS), "",
                              formatC(pS, digits = 3, format = "g"))), size = 3) +
@@ -242,34 +261,15 @@ ggplot(plotdata, aes(x = A, y = B, fill = pS)) +
         axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-# 5. Repeat the analysis (optional)
+# 6. Reproducibility
 
-**Do not execute this block when knitting the example.** It is provided to document the original analysis and rerun the PERMANOVA subsampling if necessary. The supplied counts and parametric fits mean that no expensive recomputation is needed to reproduce the figures.
+To recompute all four SS estimates, rather than use the results included in the package, set `calculate_ss: true` in the document header or run:
 
-```{r recompute, eval=FALSE}
-dir.create("results", showWarnings = FALSE)
-
-for (name in comparisons) {
-  if (name %in% c("Female", "Male")) {
-    ind1 <- which(betameta$gender == name & betameta$smoker == "yes")
-    ind2 <- which(betameta$gender == name & betameta$smoker == "no")
-  } else {
-    ind1 <- which(betameta$gender == "Female" & betameta$smoker == name)
-    ind2 <- which(betameta$gender == "Male" & betameta$smoker == name)
-  }
-
-  res <- similarity_structure(
-    n1 = betadist[ind1, , drop = FALSE],
-    n2 = betadist[ind2, , drop = FALSE],
-    N_init = 2, N_fin = N_fin[name],
-    num_N = 60, num_repet = 300,
-    replace = TRUE, test = similaritystructure::adonis_ss,
-    test_args = list(subset_choice = name, permutations = 999),
-    alpha = 0.05, seed = 123456, plotting = FALSE
-  )
-
-  saveRDS(res, file.path("results", paste0("betadivers_", name, ".rds")))
-}
+```{r rerun, eval=FALSE}
+rmarkdown::render(
+  "example_03_betadivers.Rmd",
+  params = list(calculate_ss = TRUE)
+)
 ```
 
-The microbiome data originate from curatedMetagenomicData. Sample IDs were normalized from hyphens to dots before matching the metadata to the distance matrix. The corrected data contain **1,011 samples from 10 studies**, not 1,011 independent studies.
+The full calculation repeats PERMANOVA with the stated settings and can be computationally expensive.
