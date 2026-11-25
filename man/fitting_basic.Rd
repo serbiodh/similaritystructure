@@ -2,14 +2,14 @@
 % Please edit documentation in R/fitting_basic.R
 \name{fitting_basic}
 \alias{fitting_basic}
-\title{Fit basic parametric g(n) candidate models}
+\title{Fit basic parametric beta(n) candidate models}
 \usage{
 fitting_basic(n0, Prob, Scale)
 }
 \arguments{
 \item{n0}{Numeric vector. Subsample sizes.}
 
-\item{Prob}{Numeric vector. Empirical probabilities or scaled g(n) values
+\item{Prob}{Numeric vector. Empirical probabilities or scaled beta(n) values
 associated with \code{n0}.}
 
 \item{Scale}{Numeric. Scaling factor used to build initial parameter values
@@ -25,7 +25,7 @@ error of the fitted model.}
 }
 }
 \description{
-Fits several polynomial-exponential candidate models to an empirical g(n)
+Fits several polynomial-exponential candidate models to an empirical beta(n)
 curve using non-linear least squares. The candidate models have the general
 form of a polynomial in \code{N} multiplied by an exponential decay term.
 }

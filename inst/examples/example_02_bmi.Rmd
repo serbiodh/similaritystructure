@@ -1,0 +1,272 @@
+---
+title: "Example 02 - BMI and smoking status (NHANES 2017-2018)"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+params:
+  calculate_ss: false
+---
+
+# 1. Introduction
+
+We compare body mass index (BMI) among never smokers (N), former smokers (F) and current smokers (C). This example illustrates the use of the similarity structure with continuous data and Welch's t-test.
+
+The default analysis uses the non-rejection counts included in the package, so the figures can be reproduced quickly. Set `calculate_ss: true` to repeat all the subsampling tests.
+
+# 2. Read and prepare the data
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.align = "center", fig.width = 8, fig.height = 5)
+```
+
+```{r data}
+library(similaritystructure)
+library(haven)
+library(ggplot2)
+
+# Download the three NHANES 2017-2018 data files, if necessary.
+dir.create("data", showWarnings = FALSE)
+files <- c("DEMO_J", "SMQ_J", "BMX_J")
+url <- "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/"
+
+for (f in files) {
+  path <- file.path("data", paste0(f, ".XPT"))
+  if (!file.exists(path))
+    download.file(paste0(url, f, ".XPT"), path, mode = "wb")
+}
+
+demo <- haven::read_xpt("data/DEMO_J.XPT")
+smq <- haven::read_xpt("data/SMQ_J.XPT")
+bmx <- haven::read_xpt("data/BMX_J.XPT")
+
+demo <- as.data.frame(demo[, c("SEQN", "RIDAGEYR")])
+smq <- as.data.frame(smq[, c("SEQN", "SMQ020", "SMQ040")])
+bmx <- as.data.frame(bmx[, c("SEQN", "BMXBMI")])
+
+# Include adults aged 20 years or older.
+dat <- merge(demo, smq, by = "SEQN")
+dat <- dat[!is.na(dat$RIDAGEYR) & dat$RIDAGEYR >= 20, ]
+
+# SMQ020: at least 100 cigarettes in life.
+# SMQ040: currently smoking every day, some days, or not at all.
+dat$smoking <- NA_character_
+dat$smoking[which(dat$SMQ020 == 2)] <- "Never"
+dat$smoking[which(dat$SMQ020 == 1 & dat$SMQ040 == 3)] <- "Former"
+dat$smoking[which(dat$SMQ020 == 1 & dat$SMQ040 %in% c(1, 2))] <- "Current"
+
+dat <- dat[!is.na(dat$smoking), ]
+dat$smoking <- factor(dat$smoking,
+                      levels = c("Never", "Former", "Current"))
+
+# Retain missing BMI values temporarily to describe the study population.
+dat <- merge(dat, bmx, by = "SEQN", all.x = TRUE)
+classified <- table(dat$smoking)
+available <- table(dat$smoking[is.finite(dat$BMXBMI)])
+
+data.frame(Group = names(classified),
+           Classified = as.integer(classified),
+           Available_BMI = as.integer(available),
+           Missing_BMI = as.integer(classified - available))
+
+# 5,569 participants have a smoking classification; 5,175 have valid BMI.
+stopifnot(identical(as.integer(classified), c(3234L, 1329L, 1006L)))
+
+dat <- dat[is.finite(dat$BMXBMI), ]
+groups <- split(dat$BMXBMI, dat$smoking)
+
+summary_bmi <- data.frame(
+  Group = names(groups),
+  N = lengths(groups),
+  Mean = sapply(groups, mean),
+  SD = sapply(groups, sd)
+)
+print(summary_bmi, row.names = FALSE)
+```
+
+These comparisons are unweighted descriptions of the NHANES participants. They are not survey-weighted estimates for the United States population.
+
+# 3. Classical comparisons
+
+We first calculate the differences between group means, Cohen's d and the p-values from Welch's t-test. The p-values are adjusted for three comparisons using the Holm method.
+
+```{r tests}
+pairs <- list("N-C" = c("Never", "Current"),
+              "F-N" = c("Former", "Never"),
+              "F-C" = c("Former", "Current"))
+
+tests <- data.frame()
+
+for (name in names(pairs)) {
+  A <- groups[[pairs[[name]][1]]]
+  B <- groups[[pairs[[name]][2]]]
+
+  pooled_sd <- sqrt(((length(A) - 1)*var(A) +
+                     (length(B) - 1)*var(B)) /
+                    (length(A) + length(B) - 2))
+
+  tests <- rbind(tests, data.frame(
+    Comparison = name,
+    Difference = mean(A) - mean(B),
+    Cohen_d = (mean(A) - mean(B)) / pooled_sd,
+    p = t.test(A, B)$p.value
+  ))
+}
+
+tests$p_Holm <- p.adjust(tests$p, method = "holm")
+print(tests, row.names = FALSE, digits = 5)
+```
+
+# 4. Similarity structures
+
+We use the same parameters for all three comparisons: 60 subsample sizes, 300 repetitions per size, alpha = 0.05 and seed = 12345. The upper subsample size differs among comparisons.
+
+Sampling is **with replacement**, as in the analysis. Some evaluated subsample sizes exceed the number of observed participants. Repeated draws do not create additional independent participants.
+
+```{r similarity-structures}
+N_fin <- c("N-C" = 4500L, "F-N" = 1500L, "F-C" = 800L)
+num_N <- 60L
+num_repet <- 300L
+alpha <- 0.05
+seed <- 12345L
+
+source(system.file("scripts", "example_cache.R",
+                   package = "similaritystructure"))
+
+if (isTRUE(params$calculate_ss)) {
+
+  ss <- list()
+  dir.create("results", showWarnings = FALSE)
+
+  for (name in names(pairs)) {
+    A <- groups[[pairs[[name]][1]]]
+    B <- groups[[pairs[[name]][2]]]
+
+    ss[[name]] <- similarity_structure(
+      A, B, N_init = 2L, N_fin = N_fin[[name]],
+      num_N = num_N, num_repet = num_repet,
+      replace = TRUE, test = "t-test",
+      alpha = alpha, seed = seed, plotting = FALSE
+    )
+
+    # Save each result so it is available after the analysis.
+    saveRDS(ss[[name]], file.path("results",
+                                paste0("ss_bmi_", name, ".rds")))
+  }
+
+} else {
+
+  # Estimate the SS from the saved non-rejection counts.
+  ss <- read_example_cache("bmi")
+}
+```
+
+The result of each comparison contains the empirical non-rejection curve (`scaled_bn`), the parametric approximation (`fitting`) and the binomial GAM approximation (`smooth`).
+
+# 5. Similarity sizes and comparison of effects
+
+```{r results}
+order <- names(pairs)
+ns <- data.frame(Comparison = order,
+                 Fitting = NA_real_, Smoothing = NA_real_)
+
+for (i in seq_along(order)) {
+  x <- ss[[order[i]]]$simil_struct_Ns
+  if (is.null(x$fitting)) stop("Parametric fitting failed for ", order[i])
+  ns$Fitting[i] <- x$fitting$Ns_fitting
+  ns$Smoothing[i] <- x$smooth$Ns_smooth
+}
+
+print(ns, row.names = FALSE, digits = 5)
+
+# Compare every pair of effects using prob_effect().
+ps_fit <- ps_smooth <- matrix(NA_real_, 3, 3,
+                              dimnames = list(order, order))
+
+for (i in seq_along(order)) {
+  for (j in seq_along(order)) {
+    A <- ss[[order[i]]]$simil_struct_Ns
+    B <- ss[[order[j]]]$simil_struct_Ns
+
+    ps_fit[i, j] <- prob_effect(fitting_A = A$fitting,
+                               fitting_B = B$fitting)
+    ps_smooth[i, j] <- prob_effect(smooth_A = A$smooth,
+                                  smooth_B = B$smooth)
+  }
+}
+
+cat("pS from parametric fitting:\n")
+print(ps_fit, digits = 5)
+cat("pS from binomial GAM:\n")
+print(ps_smooth, digits = 5)
+```
+
+The parametric SS is normalized over an infinite range of subsample sizes; the GAM is normalized over the evaluated finite range. A smoothed `pS` can therefore be zero because the relevant similarity size lies beyond that range. The quantity `pS` is a descriptive comparison probability, not a hypothesis-test p-value.
+
+# 6. Figures
+
+## Normalized similarity structures
+
+```{r ss-figure}
+curves <- data.frame()
+
+for (name in order) {
+  fit <- ss[[name]]$simil_struct_Ns$fitting
+  curves <- rbind(curves, data.frame(
+    Comparison = name, n = fit$vect_N_fit, Sn = fit$Sn
+  ))
+}
+
+colors <- c("N-C" = "#2C5FDB", "F-N" = "#87B943", "F-C" = "#D74A46")
+
+ggplot(curves, aes(x = n, y = Sn, color = Comparison)) +
+  geom_line(linewidth = 0.9) +
+  scale_x_log10(breaks = c(100, 1000, 10000)) +
+  scale_color_manual(values = colors) +
+  labs(x = "Subsample size (n)", y = "S(n)") +
+  theme_bw()
+```
+
+## Similarity sizes
+
+```{r ns-figure}
+ggplot(ns, aes(x = Comparison, y = Fitting, fill = Comparison)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = round(Fitting, 1)), vjust = -0.4) +
+  scale_fill_manual(values = colors, guide = "none") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+  labs(x = NULL, y = "Similarity size (nS)") +
+  theme_bw()
+```
+
+## Similar effect probability
+
+```{r ps-figure, fig.width=6.5}
+ps_df <- as.data.frame(as.table(ps_fit))
+names(ps_df) <- c("Comparison_A", "Comparison_B", "pS")
+ps_df$Comparison_A <- factor(ps_df$Comparison_A, levels = order)
+ps_df$Comparison_B <- factor(ps_df$Comparison_B, levels = rev(order))
+
+ggplot(ps_df, aes(x = Comparison_A, y = Comparison_B, fill = pS)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = formatC(pS, digits = 3, format = "g")), size = 4) +
+  scale_fill_gradient(low = "#4363BF", high = "#F9F0A1") +
+  coord_equal() +
+  labs(x = NULL, y = NULL, fill = "pS") +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+```
+
+# 7. Reproducibility
+
+The source data are the public NHANES 2017-2018 files `DEMO_J`, `SMQ_J` and `BMX_J`. Participants are classified using `SMQ020` and `SMQ040`, and observations with missing BMI are excluded from the statistical comparisons.
+
+To repeat the full subsampling analysis rather than use the saved counts:
+
+```{r rerun, eval=FALSE}
+rmarkdown::render(
+  "example_02_bmi.Rmd",
+  params = list(calculate_ss = TRUE)
+)
+```

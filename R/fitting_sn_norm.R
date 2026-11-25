@@ -1,28 +1,28 @@
-#' Normalize a fitted g(n) curve
+#' Normalize a fitted beta(n) curve
 #'
-#' Converts fitted g(n) parameters into normalized parameters so that the
+#' Converts fitted beta(n) parameters into normalized parameters so that the
 #' fitted curve can be interpreted as a probability distribution over subsample
-#' sizes, p(n)
+#' sizes, S(n)
 #'
 #' @param Param_0 Numeric vector. Raw fitted parameters, usually obtained from
-#'   `fitting_pnalpha()`.
+#'   `fitting_sn()`.
 #' @param vect_N Numeric vector. Subsample sizes over which the normalized
-#'   P(N|>alpha) distribution is evaluated.
+#'   scaled beta(n) distribution is evaluated.
 #'
 #' @return A list with two components:
 #' \describe{
 #'   \item{Params}{Normalized parameter vector.}
-#'   \item{P_N_alpha}{Normalized probability values evaluated over `vect_N`.}
+#'   \item{Sn}{Normalized probability values evaluated over `vect_N`.}
 #' }
 #'
 #' @keywords internal
 
 
-fitting_pnalpha_norm = function(Param_0, vect_N){
+fitting_sn_norm = function(Param_0, vect_N){
 
-  # This script normalizes the experimental g(n) to get the final p(n)
+  # This script normalizes the experimental beta(n) to get the final S(n)
   # The sum_N( p(>alpha | N) ) goes from m to inf.
-  # WARNING! This is done because this final p(n) is the probability distribution,
+  # WARNING! This is done because this final S(n) is the probability distribution,
   # i.e., the theoretical law of the distribution of the probability
 
   # Bayes theorem
@@ -46,7 +46,7 @@ fitting_pnalpha_norm = function(Param_0, vect_N){
 
   Param = c(a/P_alpha, b/P_alpha, c/P_alpha, d, e/P_alpha)  # Eq. [12]
 
-  P_N_alpha = (Param[1] + Param[2]*vect_N + Param[3]*(vect_N^2) + Param[5]*(vect_N^3))*exp(-Param[4]*vect_N)
+  Sn = (Param[1] + Param[2]*vect_N + Param[3]*(vect_N^2) + Param[5]*(vect_N^3))*exp(-Param[4]*vect_N)
 
-  return(list(Params = Param, P_N_alpha = P_N_alpha))
+  return(list(Params = Param, Sn = Sn))
 }

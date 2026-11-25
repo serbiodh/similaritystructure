@@ -26,4 +26,4 @@ First row of the \code{adonis2()} table, including a \code{p.value} column.
 \description{
 PERMANOVA test for subsampled distance matrices
 }
-\keyword{internal}
+

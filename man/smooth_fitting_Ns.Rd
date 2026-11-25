@@ -2,18 +2,21 @@
 % Please edit documentation in R/smooth_fitting_Ns.R
 \name{smooth_fitting_Ns}
 \alias{smooth_fitting_Ns}
-\title{Smooth and fit a P(N|>alpha) curve}
+\title{Smooth and fit a scaled beta(n) curve}
 \usage{
-smooth_fitting_Ns(N_init, N_fin, propsig, plotting = TRUE, title_plot = NULL)
+smooth_fitting_Ns(N_init, N_fin, propsig, plotting = TRUE, title_plot = NULL,
+  num_repet = attr(propsig, "num_repet"))
 }
 \arguments{
 \item{N_init}{Numeric. Initial subsample size.}
 
 \item{N_fin}{Numeric. Final subsample size.}
 
-\item{propsig}{Data frame or \code{data.table}. Empirical P(N|>alpha) curve, usually
-returned by \code{pnalpha_scaled()}. It must contain at least the columns \code{N} and
-\code{scaled}.}
+\item{propsig}{Data frame or \code{data.table}. Empirical scaled beta(n) curve, usually
+returned by \code{sn_norm()}. It must contain at least the columns \code{N} and
+\code{scaled} and \code{num_nosig}.}
+
+\item{num_repet}{Number of tests per subsample size, defaulting to the recorded attribute.}
 
 \item{plotting}{Logical. Should the empirical, smoothed and fitted curves be
 plotted?}
@@ -26,19 +29,19 @@ A list with three components:
 \item{smooth}{List containing the smooth approximation, normalized smooth
 curve, evaluated subsample sizes and smooth similarity size.}
 \item{fitting}{List containing the parametric fit, fitted curve,
-goodness-of-fit value, normalized parameters, normalized PN-alpha
+goodness-of-fit value, normalized parameters, normalized similarity structure
 distribution and fitted similarity size.}
 \item{Ns_diff}{Difference between the fitted and smoothed similarity sizes.}
 }
 }
 \description{
-Takes an empirical scaled P(N|>alpha) curve and estimates the corresponding
-similarity structure using two approaches: a smooth GAM-based approximation
+Takes an empirical scaled beta(n) curve and estimates the corresponding
+similarity structure using two approaches: a binomial GAM approximation with a logit link
 and a parametric fitted approximation.
 }
 \details{
-The smooth approach estimates a smoothed curve over a dense sequence of
-subsample sizes and normalizes it to obtain an expected similarity size. The
+The smooth approach models counts using a binomial GAM with an unconstrained
+thin plate spline (REML), then normalizes predictions over the finite support. The
 fitting approach fits a parametric curve, normalizes it, and computes the
 corresponding expected similarity size.
 }
