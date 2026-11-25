@@ -96,7 +96,7 @@ The main-text examples are:
 
 - `example_01_mean.Rmd`: normal samples with different means (Figure 3).
 - `example_02_bmi.Rmd`: NHANES BMI and smoking status (Figure 4; original parameters and verified cohort).
-- `example_03_betadivers.Rmd`: gut microbiome composition (Figure 5).
+- `example_03_betadivers.Rmd`: gut microbiome composition (Figure 5; corrected sample IDs, 1,011 samples, sampling with replacement).
 
 The BMI example includes 180 original non-rejection counts in `inst/extdata/bmi_counts.csv`.
 It refits the binomial GAM and parametric model without repeating subsampling;
@@ -104,9 +104,14 @@ set `calculate_ss: true` in the Rmd to run missing comparisons and save their RD
 Copy the Rmd to a writable working folder before knitting so NHANES XPT files
 can be downloaded into `data/` and results saved into `results/`.
 
-Historical cached results for the normal and microbiome examples retain
-original Monte Carlo counts. They are updated to the binomial GAM on loading,
-without repeating tests or refitting the parametric models. To reproduce the
+The corrected microbiome example contains 237 original non-rejection counts
+in `inst/extdata/betadivers_counts.csv` and the original parametric coefficients
+in `inst/extdata/betadivers_fitting.csv`. The example refits only the binomial
+GAM on loading and does not repeat any PERMANOVA subsampling. It corrects the
+`-`/`.` mismatch between metadata and distance-matrix sample IDs before matching.
+
+Historical cached results for the normal example retain the original
+Monte Carlo counts and are updated to the binomial GAM on loading. To reproduce the
 current subsample-size grid, repeat the underlying subsampling.
 The standard-deviation example is retained separately under `supplementary/`
 for the supporting normal-distribution analyses (Supplementary Figure S5.B).

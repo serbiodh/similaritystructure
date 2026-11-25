@@ -19,3 +19,5 @@ recomputed and checked before publication.
 * Remove unused Imports and the vignette builder declaration (example Rmd files are not package vignettes); allow roxygen2 to regenerate prob_effect help.
 
 * Replace the provisional NHANES BMI example with a verified, fully commented R Markdown analysis. Store original empirical non-rejection counts for fast refitting without MATLAB or repeated subsampling.
+
+* Correct sample-ID punctuation in the gut microbiome example (1,011 samples). Replace four outdated cached results with original empirical counts and parametric coefficients from the corrected, with-replacement analysis; update binomial GAM smoothing and pS figures.
