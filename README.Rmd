@@ -2,14 +2,13 @@
 output: github_document
 ---
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+<!-- README.md is generated from README.Rmd. Please edit README.Rmd. -->
 
 # similaritystructure
 
-Estimate the similarity structure (SS) and similarity size of two samples
-using repeated subsampling, hypothesis testing, smoothing and parametric
-fitting. Compare the sizes of effects through the similar effect probability
-(pS).
+The **similaritystructure** package estimates the similarity structure (SS) from repeated subsampling and hypothesis tests. It returns a normalized distribution over subsample sizes, the similarity size (`nS`), and the similar effect probability (`pS`) for comparisons between effects.
+
+Two approximations are available: parametric fitting and binomial GAM smoothing. The first is normalized over an infinite range; the second over the evaluated range of sample sizes.
 
 ## Installation
 
@@ -17,119 +16,113 @@ fitting. Compare the sizes of effects through the similar effect probability
 remotes::install_github("serbiodh/similaritystructure")
 ```
 
-## Calculate and extract the similarity structure
+The current development version is in the `update-paper` branch:
+
+```r
+remotes::install_github("serbiodh/similaritystructure", ref = "update-paper")
+```
+
+## A first similarity structure
 
 ```r
 library(similaritystructure)
 
 set.seed(12345)
-A <- rnorm(1000)
-B <- rnorm(1000, 0.5)
-C <- rnorm(1000, 0.9)
+A <- rnorm(600)
+B <- rnorm(600, mean = 0.5)
+C <- rnorm(600, mean = 1)
 
-AB <- similarity_structure(A, B, N_fin = 300,
-                           test = "t-test", seed = 12345,
-                           plotting = FALSE)
-AC <- similarity_structure(A, C, N_fin = 300,
-                           test = "t-test", seed = 12346,
-                           plotting = FALSE)
+AB <- similarity_structure(
+  A, B, N_fin = 100, num_N = 20, num_repet = 50,
+  replace = TRUE, test = "t-test", alpha = 0.05,
+  seed = 12345, plotting = FALSE
+)
 
-# Empirical scaled non-rejection curve
-AB$scaled_bn
-
-# Similarity structure and similarity size: smoothing
-AB$simil_struct_Ns$smooth$Sn
-AB$simil_struct_Ns$smooth$Ns_smooth
-
-plot(AB$simil_struct_Ns$smooth$vect_N_smooth,
-     AB$simil_struct_Ns$smooth$Sn,
-     type = "l", xlab = "Subsample size", ylab = "S(n)")
-
-# Similarity structure and similarity size: parametric fitting
-if (!is.null(AB$simil_struct_Ns$fitting)) {
-  AB$simil_struct_Ns$fitting$Sn
-  AB$simil_struct_Ns$fitting$Ns_fitting
-  plot(AB$simil_struct_Ns$fitting$vect_N_fit,
-       AB$simil_struct_Ns$fitting$Sn,
-       type = "l", xlab = "Subsample size", ylab = "S(n)")
-}
+AC <- similarity_structure(
+  A, C, N_fin = 100, num_N = 20, num_repet = 50,
+  replace = TRUE, test = "t-test", alpha = 0.05,
+  seed = 12346, plotting = FALSE
+)
 ```
 
-The empirical non-rejection curve is scaled by its first value for
-parametric fitting. Smoothing uses the original counts in a binomial GAM
-with a logit link and an unconstrained thin plate spline (REML), then
-rescales the predictions for graphical comparison. Neither scaled curve
-is the similarity structure itself.
-The smoothed SS is normalized over the finite interval; the fitted SS
-is normalized over the infinite support starting at N_init. The returned
-fitted vector only covers a finite display range and need not sum to one.
-Choose N_fin to cover the decay of the empirical curve; inspect the fit
-before interpreting its extrapolated tail.
-
-## Compare effect sizes using pS
+The empirical non-rejection curve is in `scaled_bn`. The normalized SS and similarity size are provided by `smooth` and, when a valid parametric fit is found, by `fitting`.
 
 ```r
-# Smoothing
+AB$scaled_bn
+
+AB$simil_struct_Ns$smooth$Ns_smooth
+plot(AB$simil_struct_Ns$smooth$vect_N_smooth,
+     AB$simil_struct_Ns$smooth$Sn,
+     type = "l", xlab = "Subsample size (n)", ylab = "S(n)")
+
+if (!is.null(AB$simil_struct_Ns$fitting))
+  AB$simil_struct_Ns$fitting$Ns_fitting
+```
+
+## Compare effects with pS
+
+Use `prob_effect()` to compare two normalized similarity structures.
+
+```r
 prob_effect(smooth_A = AB$simil_struct_Ns$smooth,
             smooth_B = AC$simil_struct_Ns$smooth)
 
-# Fitting, or both methods when the fits are available
 if (!is.null(AB$simil_struct_Ns$fitting) &&
     !is.null(AC$simil_struct_Ns$fitting)) {
   prob_effect(fitting_A = AB$simil_struct_Ns$fitting,
               fitting_B = AC$simil_struct_Ns$fitting)
-
-  prob_effect(fitting_A = AB$simil_struct_Ns$fitting,
-              fitting_B = AC$simil_struct_Ns$fitting,
-              smooth_A = AB$simil_struct_Ns$smooth,
-              smooth_B = AC$simil_struct_Ns$smooth)
 }
 ```
 
-pS is the minimum of the two cross-tail probabilities evaluated at the
-similarity size of the other comparison. It is not a hypothesis-test
-p-value; a threshold such as 0.05 is a user-defined decision criterion.
-Compare structures computed with the same test, significance level and
-compatible sample-size supports.
+`pS` is a descriptive comparison probability, not a hypothesis-test p-value. Interpret comparisons made using the same statistical test, significance level and compatible sample-size supports. In particular, examine the empirical curve and fit before interpreting extrapolated tails.
 
-For more information, run `?similarity_structure` and `?prob_effect`.
+For more information, see `?similarity_structure` and `?prob_effect`.
 
-## Example files
+## Reproducible examples
 
-The main-text examples are:
+The package includes three R Markdown analyses:
 
-- `example_01_mean.Rmd`: normal samples with different means (Figure 3).
-- `example_02_bmi.Rmd`: NHANES BMI and smoking status (Figure 4; reconstruction pending verification against the original analysis).
-- `example_03_betadivers.Rmd`: gut microbiome composition (Figure 5).
+| Example | Data | Test |
+| --- | --- | --- |
+| `example_01_mean.Rmd` | Normal data with 24 different mean shifts | KS test (t-test option) |
+| `example_02_bmi.Rmd` | BMI by smoking status, NHANES 2017–2018 | Welch's t-test |
+| `example_03_betadivers.Rmd` | Gut microbiome beta diversity by sex and smoking | PERMANOVA |
 
-Historical cached results for the normal and microbiome examples retain
-original Monte Carlo counts. They are updated to the binomial GAM on loading,
-without repeating tests or refitting the parametric models. To reproduce the
-current subsample-size grid, repeat the underlying subsampling.
-The standard-deviation example is retained separately under `supplementary/`
-for the supporting normal-distribution analyses (Supplementary Figure S5.B).
+Each example runs quickly by default using results supplied with the package. Set `calculate_ss: true` to repeat the full subsampling analysis. The latter can take a long time, especially for the microbiome.
+
+Copy the examples to a **writable folder** before running them:
 
 ```r
-system.file("extdata", package = "similaritystructure")
-system.file("examples", package = "similaritystructure")
+examples <- c("example_01_mean.Rmd",
+              "example_02_bmi.Rmd",
+              "example_03_betadivers.Rmd")
 
-file <- system.file("examples", "example_01_mean.Rmd",
-                    package = "similaritystructure")
-file.edit(file)
+dir.create("examples", showWarnings = FALSE)
+
+file.copy(
+  file.path(system.file("examples", package = "similaritystructure"), examples),
+  file.path("examples", examples),
+  overwrite = TRUE
+)
+
+rmarkdown::render("examples/example_01_mean.Rmd")
+rmarkdown::render("examples/example_02_bmi.Rmd")
+rmarkdown::render("examples/example_03_betadivers.Rmd")
 ```
 
-The examples may require additional packages (tictoc, data.table, dplyr,
-tidyr, pbapply, ggplot2, stringr, patchwork, viridis, vegan and haven).
-Install the relevant packages before running the examples.
-
-To update your own saved results without repeating subsampling:
+To perform the full analysis, for example for BMI:
 
 ```r
-source(system.file("scripts", "upgrade_cached_results.R",
-                   package = "similaritystructure"))
-# Supply the VERIFIED number of tests per subsample size from the original run.
-upgrade_cached_file("original.rds", "updated_binomial.rds", num_repet = 300)
+rmarkdown::render("examples/example_02_bmi.Rmd",
+                  params = list(calculate_ss = TRUE))
 ```
 
-The updater preserves the original empirical grid and parametric fitting.
-It writes a separate file and never overwrites the original results.
+The normal-data example also accepts `test = "t-test"` in its R Markdown parameters. The BMI analysis downloads public NHANES data when needed; the microbiome distance matrix and metadata are supplied with the package.
+
+For the examples, install `ggplot2`, `haven`, `knitr` and `rmarkdown`; `vegan` is also needed to repeat the microbiome PERMANOVA subsampling.
+
+## Notes on interpretation
+
+Subsampling with replacement can include the same observed participant more than once. It does not create new independent observations, even when the evaluated subsample size exceeds the size of the original data.
+
+For GAM smoothing, the normalized SS is defined on the finite evaluated interval. For the parametric fit, normalization uses the fitted infinite tail. Consequently, their `nS` and `pS` values need not agree exactly, particularly if the empirical curve has not decayed by the selected upper sample size.
